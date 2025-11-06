@@ -8,31 +8,35 @@ public class Parser {
      * @return Arraylist of expression results as strings. All numbers should return as doubles so if you want to pretty it up you have to fix that
      * <br>If an inputted expression had no math, it will return int the form "r (num) (num) (num)..." from the rolls, also as doubles
      */
-    public static ArrayList<String> evaluate(String input) throws IllegalArgumentException{
-        ArrayList<ArrayList<String>> inputExpressions = new ArrayList<>();
-        try {
-            removeWhitespace(input);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(String.format("Whitespace removal step failed\n%s", e));
+    public static ArrayList<String> evaluate(String input) throws IllegalArgumentException {
+        ArrayList<String> output = new ArrayList<>();
+        ArrayList<String> expressions = removeWhitespace(input);
+
+        if (expressions.getFirst().equals("ERR")) {
+            output.add("ERR");
+            output.add(String.format("Whitespace removal step failed\n%s", expressions.get(1)));
+            return output;
         }
+
+        ArrayList<ArrayList<String>> inputExpressions = new ArrayList<>();
         for(String exp : removeWhitespace(input)) {
-            ArrayList<String> tester;
-            try {
-                tester = stringTokenizer(exp);
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException(String.format("Exception with expression %s caught\n%s", exp, e));
+            ArrayList<String> tester = stringTokenizer(exp);
+            if (tester.getFirst().equals("ERR")) {
+                output.add("ERR");
+                output.add(String.format("Exception with expression %s caught\n%s", exp, tester.get(1)));
+                return output;
             }
 
-            try {
-                tester = evaluateDice(tester);
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException(String.format("Exception with diceroll caught in expression %s \n%s", exp, e));
+            tester = evaluateDice(tester);
+            if (tester.getFirst().equals("ERR")) {
+                output.add("ERR");
+                output.add(String.format("Exception with diceroll caught in expression %s \n%s", exp, tester.get(1)));
+                return output;
             }
 
             inputExpressions.add(tester);
         }
 
-        ArrayList<String> output = new ArrayList<>();
         for(ArrayList<String> expression : inputExpressions) {
             //if the input expression was just a dice roll, preface with "r " and have the numbers separated by spaces
             if (expression.getFirst().equals("Dice Roll Expression")) {
@@ -49,7 +53,10 @@ public class Parser {
             } catch (IllegalArgumentException e) {
                 StringBuilder reconstructor = new StringBuilder();
                 for(String s : expression) reconstructor.append(s);
-                throw new IllegalArgumentException(String.format("Exception caught while evaluating math expression %s\n%s", reconstructor, e));
+                output.clear();
+                output.add("ERR");
+                output.add(String.format(String.format("Exception caught while evaluating math expression %s\n%s", reconstructor, e)));
+                return output;
             }
         }
 
@@ -98,12 +105,18 @@ public class Parser {
      * Removes whitespace from a string input and breaks it into multiple strings for use in stringTokenizer
      * @param input Raw command string input
      * @return ArrayList of strings without whitespace
+     * <p> Errors are returned as ["ERR", "(error text)"]
      */
-    public static ArrayList<String> removeWhitespace (String input) throws IllegalArgumentException {
+    public static ArrayList<String> removeWhitespace (String input) {
         ArrayList<String> output = new ArrayList<>();
         int unparsedIndex;
 
-        if (input.isBlank()) throw new IllegalArgumentException("removeWhitespace has been passed a blank string");
+        //ERR: Blank String
+        if (input.isBlank()) {
+            output.add("ERR");
+            output.add("removeWhitespace has been passed a blank string");
+            return output;
+        }
         if (input.startsWith(" "))
             input = input.substring(1);
 
@@ -214,9 +227,9 @@ public class Parser {
      * <br>Valid tokens are: ()+*-/^!, d, drop, kh, kl, and doubles as strings
      * @param input String input for the tokenizer with all spaces removed
      * @return ArrayList of string tokens
-     * @throws IllegalArgumentException Unrecognized operator exception
+     * <p> Errors are returned as ["ERR", "(error text)"]
      */
-    public static ArrayList<String> stringTokenizer(String input) throws IllegalArgumentException{
+    public static ArrayList<String> stringTokenizer(String input) {
         int stringIterator = 0;
         String substringIteration;
         ArrayList<String> outputList = new ArrayList<>();
@@ -290,8 +303,13 @@ public class Parser {
                 stringIterator += intLength;
                 continue;
             }
-            // throw an error if no token was processed from the substring iteration
-            throw new IllegalArgumentException("Unrecognized argument in token parser: " + substringIteration);
+            // return an error if no token was processed from the substring iteration
+            {
+                outputList.clear();
+                outputList.add("ERR");
+                outputList.add("Unrecognized argument in token parser: " + substringIteration);
+                return outputList;
+            }
         }
         return outputList;
     }
@@ -301,11 +319,12 @@ public class Parser {
      * @param input Tokenized expression to evaluate rolls within
      * @return Token expression able to be passed into the math solver with all "d" dice rolls resolved
      * <br>If the expression only contained a dice roll expression and no math, it returns all of the rolls as tokens in a list headed by a "Dice Roll Expression" metatoken
+     * <br>Returns ["ERR", "(error text)"] if an exception is encountered
      */
-    public static ArrayList<String> evaluateDice(ArrayList<String> input) throws IllegalArgumentException {
+    public static ArrayList<String> evaluateDice(ArrayList<String> input) {
         return evaluateDice(input, "");
     }
-    public static ArrayList<String> evaluateDice(ArrayList<String> input, String minmax) throws IllegalArgumentException{
+    public static ArrayList<String> evaluateDice(ArrayList<String> input, String minmax) {
         //dummy return
         if(!input.contains("d")) return input;
 
@@ -318,8 +337,18 @@ public class Parser {
         int rollCounter = 0;
 
         while (input.subList(expressionEnd,input.size()).contains("d")) {
-            if (input.get(input.size()-2).equals("d")) throw new IllegalArgumentException("Diceroll declaration without following instructions detected");
-            if (++rollCounter > 5) throw new IllegalArgumentException("Cannot roll more than 10 rolls in one expression");
+            if (input.get(input.size()-2).equals("d")) {
+                output.clear();
+                output.add("ERR");
+                output.add("Diceroll declaration without following instructions detected");
+                return output;
+            }
+            if (++rollCounter > 5) {
+                output.clear();
+                output.add("ERR");
+                output.add("Cannot roll more than 10 rolls in one expression");
+                return output;
+            }
             expressionStart = expressionEnd;
             expressionEnd = input.subList(expressionStart, input.size()).indexOf("d") + expressionStart;
 
@@ -344,7 +373,12 @@ public class Parser {
                 //expressionEnd should always be on the operator token (aka after the last number/operator)
                 switch (input.get(expressionEnd)) {
                     case "d":
-                        if(hasDiceRoll) throw new IllegalArgumentException("More than one dice roll detected in expression");
+                        if(hasDiceRoll) {
+                            output.clear();
+                            output.add("ERR");
+                            output.add("More than one dice roll detected in expression");
+                            return output;
+                        }
                         hasDiceRoll = true;
                         toEvaluate.addAll(input.subList(expressionEnd, expressionEnd+2));
                         expressionEnd += 2;
@@ -365,7 +399,12 @@ public class Parser {
                     case "rr":
                         while (!input.get(expressionEnd).equals("}")) {
                             toEvaluate.add(input.get(expressionEnd));
-                            if (input.get(expressionEnd).equals("EOF")) throw new IllegalArgumentException("Reached end of expression while parsing open reroll condition");
+                            if (input.get(expressionEnd).equals("EOF")) {
+                                output.clear();
+                                output.add("ERR");
+                                output.add("Reached end of expression while parsing open reroll condition");
+                                return output;
+                            }
                             expressionEnd++;
                         }
                         toEvaluate.add(input.get(expressionEnd));
@@ -378,7 +417,12 @@ public class Parser {
                     case "drop":
                         while (!input.get(expressionEnd).equals("}")) {
                             toEvaluate.add(input.get(expressionEnd));
-                            if (input.get(expressionEnd).equals("EOF")) throw new IllegalArgumentException("Reached end of expression while parsing open drop condition");
+                            if (input.get(expressionEnd).equals("EOF")) {
+                                output.clear();
+                                output.add("ERR");
+                                output.add("Reached end of expression while parsing open drop condition");
+                                return output;
+                            }
                             expressionEnd++;
                         }
                         toEvaluate.add(input.get(expressionEnd));
@@ -388,7 +432,12 @@ public class Parser {
                         if (input.get(expressionEnd+1).equals("{")) {
                             while (!input.get(expressionEnd).equals("}")) {
                                 toEvaluate.add(input.get(expressionEnd));
-                                if (input.get(expressionEnd).equals("EOF")) throw new IllegalArgumentException("Reached end of expression while parsing open explode condition");
+                                if (input.get(expressionEnd).equals("EOF")) {
+                                    output.clear();
+                                    output.add("ERR");
+                                    output.add("Reached end of expression while parsing open explode condition");
+                                    return output;
+                                }
                                 expressionEnd++;
                             }
                         }
@@ -434,7 +483,12 @@ public class Parser {
             firstPass = false;
             toEvaluate.clear();
 
-            if(output.size() > 99) throw new IllegalArgumentException("Rollplayer will not parse more than 100 expressions");
+            if(output.size() > 99) {
+                output.clear();
+                output.add("ERR");
+                output.add("Rollplayer will not parse more than 100 expressions");
+                return output;
+            }
         }
 
         // one last pass to catch any math after the last dice roll expression

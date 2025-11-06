@@ -72,19 +72,38 @@ public class Roll extends SimpleCommandListener {
         ArrayList<String> expressions;
         List<ContainerChildComponent> output = new ArrayList<>();
 
-        try {
-            expressions = Parser.removeWhitespace(input);
-            if (expressions.size() > 5) throw new IllegalArgumentException("Rollplayer cannot roll more than 5 expressions at once");
-            evaluations = Parser.evaluate(input);
-        } catch (Exception e) {
-            var errcode = Resources.getInstance().tryLogException(e, TextDisplay.ofFormat("Roll string: `%s`", input), TextDisplay.ofFormat("-# from `%s`", event.getUser().getName()));
-            event.replyComponents(createContainer(
+        try { expressions = Parser.removeWhitespace(input); }
+        catch (Exception e) {
+            var errcode = Resources.getInstance().tryLogException(e, TextDisplay.ofFormat("Roll string: `%s`", input), TextDisplay.ofFormat("-# from `%s`", event.getUser().getName()));event.replyComponents(createContainer(
                     TextDisplay.of("**Rollplayer has run into an issue:**"),
                     TextDisplay.ofFormat("%s", e.toString()),
                     TextDisplay.ofFormat("\n-# If this issue is unexpected, please contact the developers in [the support server](https://discord.gg/TT3vyT3tAD) and give them the following error code: %s", errcode)
             )).useComponentsV2().queue();
             return;
         }
+        if (expressions.getFirst().equals("ERR") || expressions.size() > 5) {
+            String errorString;
+
+            if (expressions.getFirst().equals("ERR")) errorString = expressions.get(1);
+            else errorString = "Rollplayer cannot roll more than 5 expressions at once";
+
+            event.replyComponents(createContainer(
+                    TextDisplay.of("**Rollplayer has encountered a problem:**"),
+                    TextDisplay.ofFormat("%s", errorString)
+            )).useComponentsV2().queue();
+            return;
+        }
+        try { evaluations = Parser.evaluate(input); }
+        catch (Exception e) {
+            var errcode = Resources.getInstance().tryLogException(e, TextDisplay.ofFormat("Roll string: `%s`", input), TextDisplay.ofFormat("-# from `%s`", event.getUser().getName()));event.replyComponents(createContainer(
+                    TextDisplay.of("**Rollplayer has run into an issue:**"),
+                    TextDisplay.ofFormat("%s", e.toString()),
+                    TextDisplay.ofFormat("\n-# If this issue is unexpected, please contact the developers in [the support server](https://discord.gg/TT3vyT3tAD) and give them the following error code: %s", errcode)
+            )).useComponentsV2().queue();
+            return;
+        }
+
+
 
         // add each expression-evaluation pair
         for (int exp = 0; exp < evaluations.size(); exp++) {
