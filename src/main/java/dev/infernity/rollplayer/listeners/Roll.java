@@ -160,8 +160,19 @@ public class Roll extends SimpleCommandListener {
         if (colorViable) {
             float hue;
             double valueSum = 0;
-            double valueMax = Parser.evaluateMinMax(expressions, "max");
-            double valueMin = Parser.evaluateMinMax(expressions, "min");
+            double valueMax, valueMin;
+            try {
+                valueMax = Parser.evaluateMinMax(expressions, "max");
+                valueMin = Parser.evaluateMinMax(expressions, "min");
+            } catch (Exception e) {
+                var errcode = Resources.getInstance().tryLogException(e, TextDisplay.ofFormat("Roll string: `%s`", input), TextDisplay.ofFormat("-# from `%s`", event.getUser().getName()));
+                event.replyComponents(createContainer(
+                        TextDisplay.of("**Rollplayer has run into an issue:**"),
+                        TextDisplay.ofFormat("%s", e.toString()),
+                        TextDisplay.ofFormat("\n-# If this issue is unexpected, please contact the developers in [the support server](https://discord.gg/TT3vyT3tAD) and give them the following error code: %s", errcode)
+                )).useComponentsV2().queue();
+                return;
+            }
 
             for(String s : evaluations) {
                 if(s.startsWith("r")) {
