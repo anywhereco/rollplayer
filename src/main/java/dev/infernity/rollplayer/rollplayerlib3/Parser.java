@@ -321,10 +321,10 @@ public class Parser {
      * <br>If the expression only contained a dice roll expression and no math, it returns all of the rolls as tokens in a list headed by a "Dice Roll Expression" metatoken
      * <br>Returns ["ERR", "(error text)"] if an exception is encountered
      */
-    public static ArrayList<String> evaluateDice(ArrayList<String> input) {
+    public static ArrayList<String> evaluateDice(ArrayList<String> input) throws IllegalArgumentException {
         return evaluateDice(input, "");
     }
-    public static ArrayList<String> evaluateDice(ArrayList<String> input, String minmax) {
+    public static ArrayList<String> evaluateDice(ArrayList<String> input, String minmax) throws IllegalArgumentException {
         //dummy return
         if(!input.contains("d")) return input;
 
