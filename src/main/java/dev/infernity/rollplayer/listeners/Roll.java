@@ -74,7 +74,8 @@ public class Roll extends SimpleCommandListener {
 
         try { expressions = Parser.removeWhitespace(input); }
         catch (Exception e) {
-            var errcode = Resources.getInstance().tryLogException(e, TextDisplay.ofFormat("Roll string: `%s`", input), TextDisplay.ofFormat("-# from `%s`", event.getUser().getName()));event.replyComponents(createContainer(
+            var errcode = Resources.getInstance().tryLogException(e, TextDisplay.ofFormat("Roll string: `%s`", input), TextDisplay.ofFormat("-# from `%s`", event.getUser().getName()));
+            event.replyComponents(createContainer(
                     TextDisplay.of("**Rollplayer has run into an issue:**"),
                     TextDisplay.ofFormat("%s", e.toString()),
                     TextDisplay.ofFormat("\n-# If this issue is unexpected, please contact the developers in [the support server](https://discord.gg/TT3vyT3tAD) and give them the following error code: %s", errcode)
@@ -95,7 +96,8 @@ public class Roll extends SimpleCommandListener {
         }
         try { evaluations = Parser.evaluate(input); }
         catch (Exception e) {
-            var errcode = Resources.getInstance().tryLogException(e, TextDisplay.ofFormat("Roll string: `%s`", input), TextDisplay.ofFormat("-# from `%s`", event.getUser().getName()));event.replyComponents(createContainer(
+            var errcode = Resources.getInstance().tryLogException(e, TextDisplay.ofFormat("Roll string: `%s`", input), TextDisplay.ofFormat("-# from `%s`", event.getUser().getName()));
+            event.replyComponents(createContainer(
                     TextDisplay.of("**Rollplayer has run into an issue:**"),
                     TextDisplay.ofFormat("%s", e.toString()),
                     TextDisplay.ofFormat("\n-# If this issue is unexpected, please contact the developers in [the support server](https://discord.gg/TT3vyT3tAD) and give them the following error code: %s", errcode)
