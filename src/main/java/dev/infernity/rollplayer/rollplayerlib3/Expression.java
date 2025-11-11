@@ -32,7 +32,9 @@ public class Expression {
         else throw new IllegalArgumentException("Expected "+s+", got "+peek());
     }
     protected boolean isNumber(String s) {
-        return s.matches("\\d+.\\d+");
+        if (s.matches("\\d+.\\d+")) return true;
+        if (s.matches("\\d.\\d+[eE]\\d+")) return true;
+        return false;
     }
 
     /**
