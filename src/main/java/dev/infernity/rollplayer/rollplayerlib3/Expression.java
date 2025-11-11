@@ -8,6 +8,7 @@ import java.util.Random;
 public class Expression {
     ArrayList<String> tokenStream;
     int pointer;
+    String errorReturn;
 
     public Expression (ArrayList<String> tokens) {
         tokenStream = new ArrayList<>();
@@ -27,9 +28,12 @@ public class Expression {
         pointer++;
         return output;
     }
-    protected void consume(String s) throws IllegalArgumentException {
-        if(peek(s)) consume();
-        else throw new IllegalArgumentException("Expected "+s+", got "+peek());
+    protected void consume(String s) {
+        if(peek(s)) {
+            errorReturn = "";
+            consume();
+        }
+        else errorReturn = "Expected "+s+", got "+peek();
     }
     protected boolean isNumber(String s) {
         if (s.matches("\\d+.\\d+")) return true;
@@ -41,65 +45,65 @@ public class Expression {
      * Standard conditional tester for modularity
      * @param testValue Value to be tested, takes double or int
      * @param conditions Must be fed as (operator)(number) separated by commas. Valid operators are <, <=, >, >=, !=, and =
-     * @return Boolean result of test against conditions
-     * @throws IllegalArgumentException For unrecognized operator character
+     * @return String Boolean result of test against conditions
+     * <p> Errors are returned prefaced by "ERR "
      */
-    protected static boolean satisfiesConditions(double testValue, String conditions) throws IllegalArgumentException {
+    protected static String satisfiesConditions(double testValue, String conditions) {
         String[] conditionArray = conditions.split(",");
 
         for(String cond : conditionArray) {
             double conditionValue;
             switch(cond.charAt(0)) {
                 case '>':
-                    if(cond.length() < 2) throw new IllegalArgumentException("Condition < with no number is invalid");
+                    if(cond.length() < 2) return "ERR Condition < with no number is invalid";
                     if(cond.charAt(1) == '=') {
-                        if(cond.length() < 3) throw new IllegalArgumentException("Condition <= with no number is invalid");
+                        if(cond.length() < 3) return "ERR Condition <= with no number is invalid";
                         conditionValue = Double.parseDouble(cond.substring(2));
                         if(testValue >= conditionValue) {
-                            return true;
+                            return "true";
                         } else continue;
                     } else {
                         conditionValue = Double.parseDouble(cond.substring(1));
                         if(testValue > conditionValue) {
-                            return true;
+                            return "true";
                         } else continue;
                     }
 
                 case '<':
-                    if(cond.length() < 2) throw new IllegalArgumentException("Condition > with no number is invalid");
+                    if(cond.length() < 2) return "ERR Condition > with no number is invalid";
                     if(cond.charAt(1) == '=') {
-                        if(cond.length() < 3) throw new IllegalArgumentException("Condition >= with no number is invalid");
+                        if(cond.length() < 3) return "ERR Condition >= with no number is invalid";
                         conditionValue = Double.parseDouble(cond.substring(2));
                         if(testValue <= conditionValue) {
-                            return true;
+                            return "true";
                         } else continue;
                     } else {
                         conditionValue = Double.parseDouble(cond.substring(1));
                         if(testValue < conditionValue) {
-                            return true;
+                            return "true";
                         } else continue;
                     }
 
                 case '!':
-                    if(cond.charAt(1) != '=') throw new IllegalArgumentException("Condition ! with no = is invalid");
-                    if(cond.length() < 3) throw new IllegalArgumentException("Condition != with no number is invalid");
+                    if(cond.charAt(1) != '=') return "ERR Condition ! with no = is invalid";
+                    if(cond.length() < 3) return "ERR Condition != with no number is invalid";
                     conditionValue = Double.parseDouble(cond.substring(2));
                     if(testValue != conditionValue) {
-                        return true;
+                        return "true";
                     } else continue;
 
                 case '=':
-                    if(cond.length() < 2) throw new IllegalArgumentException("Condition = with no number is invalid");
+                    if(cond.length() < 2) return "ERR Condition = with no number is invalid";
                     conditionValue = Double.parseDouble(cond.substring(1));
                     if(testValue == conditionValue) {
-                        return true;
+                        return "true";
                     } else continue;
 
                 default:
-                    throw new IllegalArgumentException("Illegal condition: " + cond.charAt(0));
+                    return "ERR Illegal condition: " + cond.charAt(0);
             }
         }
-        return false;
+        return "false";
     }
 
 }
@@ -122,23 +126,25 @@ class DiceRoller extends Expression{
     protected boolean peek(String s){
         return peek().matches(s);
     }
-    private String getConditions(){
+    private String getConditions() {
         StringBuilder output = new StringBuilder();
         consume("\\{");
-        if (peek("}")) throw new IllegalArgumentException("Empty condition in diceroll found");
+        if (!errorReturn.isEmpty()) return "ERR " + errorReturn;
+        if (peek("}")) return "ERR Empty condition in diceroll found";
         while(!peek("\\}") && !peek("EOF")){
             output.append(consume());
         }
         consume("\\}");
+        if (!errorReturn.isEmpty()) return "ERR " + errorReturn;
         return output.toString();
     }
 
     /**
      * Evaluates a token list for dice rolling from left to right
      * @return Rolls object containing result rolls
-     * @throws IllegalArgumentException Missing condition throws
+     * <p> Returns a Rolls object with stored error and dummy values if an error was detected
      */
-    public Rolls evaluateExpression() throws IllegalArgumentException {
+    public Rolls evaluateExpression() {
         Rolls rolls;
 
         // establish initial roll
@@ -149,8 +155,9 @@ class DiceRoller extends Expression{
             } else if (isNumber(peek())) { //(num)d(num)
                 rollCount = (int)Double.parseDouble(consume());
                 consume("d");
+                if (!errorReturn.isEmpty()) return new Rolls(errorReturn);
             } else
-                throw new IllegalArgumentException("No roll detected in passed dice roll expression: " + tokenStream);
+                return new Rolls("No roll detected in passed dice roll expression: " + tokenStream);
             rollMax = (int)Double.parseDouble(consume());
             if(peek(":")) { //d(num):(num)
                 consume();
@@ -177,6 +184,7 @@ class DiceRoller extends Expression{
                             rolls.keepHighLow(keepHigher, 1);
                     } else
                         rolls.keepHigher(keepHigher);
+                    if (rolls.isError()) return rolls; // kick it up the chain
                     break;
 
                 case "kl":
@@ -192,15 +200,20 @@ class DiceRoller extends Expression{
                             rolls.keepHighLow(1, keepLower);
                     } else
                         rolls.keepLower(keepLower);
+                    if (rolls.isError()) return rolls; // kick it again
                     break;
 
                 case "rr":
                     String rerollCond;
                     int rerollMax = 1;
-                    if(peek("\\{")) rerollCond = getConditions();
-                    else throw new IllegalArgumentException("Missing condition following reroll operator");
+                    if(peek("\\{")) {
+                        rerollCond = getConditions();
+                        if (rerollCond.startsWith("ERR ")) return new Rolls(rerollCond.substring(4));
+                    }
+                    else return new Rolls("Missing condition following reroll operator");
                     if(peek(":")) {
                         consume(":");
+                        if (!errorReturn.isEmpty()) return new Rolls(errorReturn);
                         rerollMax = (int)Double.parseDouble(consume());
                     }
                     rolls.reroll(rerollCond, rerollMax);
@@ -208,37 +221,44 @@ class DiceRoller extends Expression{
 
                 case "drop":
                     if(peek("\\{")) {
-                        rolls.drop(getConditions());
-                    } else throw new IllegalArgumentException("Missing condition following drop operator");
+                        String dropConds = getConditions();
+                        if (dropConds.startsWith("ERR ")) return new Rolls(dropConds.substring(4));
+                        rolls.drop(dropConds);
+                    } else return new Rolls("Missing condition following drop operator");
                     break;
 
                 case "!":
                     String explosionCond = "";
                     int explosionMax = 10;
-                    if(peek("\\{")) explosionCond = getConditions();
+                    if(peek("\\{")) {
+                        explosionCond = getConditions();
+                        if (explosionCond.startsWith("ERR ")) return new Rolls(explosionCond.substring(4));
+                    }
                     if(peek(":")) {
                         consume(":");
+                        if (!errorReturn.isEmpty()) return new Rolls(errorReturn);
                         explosionMax = (int)Double.parseDouble(consume());
                     }
                     if(!explosionCond.isEmpty()) rolls.explode(explosionCond, explosionMax);
+                    if (rolls.isError()) return rolls; // kick it more
                     else rolls.explode(explosionMax);
                     break;
 
                 case "i":
                     ArrayList<String> conditions = new ArrayList<>();
                     ArrayList<String> mathTokens = new ArrayList<>();
-                    if(!isNumber(peek()) && !peek("\\*")) throw new IllegalArgumentException("No condition found following I-mod operator");
+                    if(!isNumber(peek()) && !peek("\\*")) return new Rolls("No condition found following I-mod operator");
                     conditions.add(consume());
                     while(peek(",")) {
                         consume();
                         if(peek("\\*") || isNumber(peek())) {
                             conditions.add(consume());
-                        } else throw new IllegalArgumentException("Unrecognized condition in imod: " + peek());
+                        } else return new Rolls("Unrecognized condition in imod: " + peek());
                     }
-                    if(!peek(":")) throw new IllegalArgumentException("No : found to declare math following I-mod conditions");
+                    if(!peek(":")) return new Rolls("No : found to declare math following I-mod conditions");
                     while(peek(":")) {
                         consume();
-                        if(peek("EOF")) throw new IllegalArgumentException("Empty math section following I-mod : declaration");
+                        if(peek("EOF")) return new Rolls("Empty math section following I-mod : declaration");
                         mathTokens.clear();
                         boolean endMath = false;
                         String[] expressionEnds = {"d", "kh", "kl", "rr", "drop", "!", "i", ":", "EOF"};
@@ -249,6 +269,7 @@ class DiceRoller extends Expression{
                                     endMath = true;
                         }
                         rolls.imod(conditions, mathTokens);
+                        if (rolls.isError()) return rolls; // kick kick kick
                     }
                     break;
             }
@@ -265,21 +286,34 @@ class Rolls{
     private final int maxRoll;
     private final String minmax;
     private final static Random rng = new Random();
+    private String errorCode;
+
+    Rolls(String error) {
+        this.rolls = new double[]{0};
+        this.minRoll = 0;
+        this.maxRoll = 0;
+        this.minmax = "";
+        this.errorCode = error;
+    }
 
     Rolls(double[] rolls, int min, int max, String minmax) {
         this.rolls = rolls;
         this.minRoll = min;
         this.maxRoll = max;
         this.minmax = minmax;
+        this.errorCode = "";
     }
 
     Rolls(double[] rolls, int die) {
         this(rolls, 1, die, "");
     }
 
-    Rolls(int rollCount, int min, int max) throws IllegalArgumentException{
-        if(rollCount > 100) throw new IllegalArgumentException("Rollplayer will not roll more than 100 dice at once");
+    Rolls(int rollCount, int min, int max) {
         this(new double[rollCount], min, max, "");
+        if(rollCount > 100) {
+            errorCode = "Rollplayer will not roll more than 100 dice at once";
+            return;
+        }
         for (int i = 0; i < rollCount; i++) {
             rolls[i] = rollNumber();
         }
@@ -290,15 +324,18 @@ class Rolls{
     }
 
     /** @param minmax Should only ever be given "min" or "max" */
-    Rolls(int rollCount, int min, int max, String minmax) throws IllegalArgumentException {
+    Rolls(int rollCount, int min, int max, String minmax) {
         double[] rolls = new double[rollCount];
         this(rolls, min, max, minmax);
         switch (minmax) {
             case "min" -> Arrays.fill(rolls, min);
             case "max" -> Arrays.fill(rolls, max);
-            default -> throw new IllegalArgumentException("Improper minmax rolls call: " + minmax);
+            default -> errorCode = "Improper minmax rolls call: " + minmax;
         }
     }
+
+    public boolean isError() { return !errorCode.isEmpty();}
+    public String getError() { return errorCode; }
 
     public double rollNumber() {
         /*example roll logic
@@ -307,6 +344,10 @@ class Rolls{
         * max roll 49 + 50 + 1 = 100
         * min roll 0 + 50 = 50
         */
+        if (maxRoll < minRoll) {
+            errorCode = "Roll upper bound is less than lower bound";
+            return 1;
+        }
         return rng.nextInt(maxRoll - minRoll + 1) + minRoll;
     }
 
@@ -321,8 +362,11 @@ class Rolls{
         return output;
     }
 
-    public void keepHigher(int high) throws IllegalArgumentException{
-        if(high > rolls.length || high < 1) throw new IllegalArgumentException(String.format("Cannot keep %d rolls of %d", high, rolls.length));
+    public void keepHigher(int high) {
+        if(high > rolls.length || high < 1) {
+            errorCode = String.format("Cannot keep %d rolls of %d", high, rolls.length);
+            return;
+        }
         ArrayList<Double> sortedRolls = new ArrayList<>();
         for (double d : rolls) sortedRolls.add(d);
         sortedRolls.sort(null);
@@ -341,8 +385,11 @@ class Rolls{
         rolls = output.stream().mapToDouble(d -> d).toArray();
     }
 
-    public void keepLower(int low) throws IllegalArgumentException{
-        if(low > rolls.length || low < 1) throw new IllegalArgumentException(String.format("Cannot keep %d rolls of %d", low, rolls.length));
+    public void keepLower(int low) {
+        if(low > rolls.length || low < 1) {
+            errorCode = String.format("Cannot keep %d rolls of %d", low, rolls.length);
+            return;
+        }
         ArrayList<Double> sortedRolls = new ArrayList<>();
         for (double d : rolls) sortedRolls.add(d);
         sortedRolls.sort(null);
@@ -361,8 +408,11 @@ class Rolls{
         rolls = output.stream().mapToDouble(d -> d).toArray();
     }
 
-    public void keepHighLow(int high, int low) throws IllegalArgumentException{
-        if (high+low > rolls.length || high < -1 || low < -1) throw new IllegalArgumentException(String.format("Cannot keep %d higher and %d lower rolls of %d", high, low, rolls.length));
+    public void keepHighLow(int high, int low) {
+        if (high+low > rolls.length || high < -1 || low < -1) {
+            errorCode = String.format("Cannot keep %d higher and %d lower rolls of %d", high, low, rolls.length);
+            return;
+        }
         ArrayList<Double> sortedRolls = new ArrayList<>();
         for (double d : rolls) sortedRolls.add(d);
         sortedRolls.sort(null);
@@ -406,10 +456,16 @@ class Rolls{
     public void reroll(String conditions, int maxRepeats) {
         double[] output = rolls;
         for (int index = 0; index < rolls.length; index++)
-            for (int retries = 0; retries < maxRepeats; retries++)
-                if (Expression.satisfiesConditions(output[index], conditions)) {
+            for (int retries = 0; retries < maxRepeats; retries++) {
+                String result = Expression.satisfiesConditions(output[index], conditions);
+                if (result.startsWith("ERR ")) {
+                    errorCode = result.substring(4);
+                    return;
+                }
+                if (result.equals("true")) {
                     output[index] = rollNumber();
                 } else break;
+            }
         rolls = output;
     }
 
@@ -419,9 +475,15 @@ class Rolls{
      */
     public void drop(String conditions) {
         ArrayList<Double> output = new ArrayList<>();
-        for (double i : rolls)
-            if (!Expression.satisfiesConditions(i, conditions))
+        for (double i : rolls) {
+            String result = Expression.satisfiesConditions(i, conditions);
+            if (result.startsWith("ERR ")) {
+                errorCode = result.substring(4);
+                return;
+            }
+            if (!result.equals("true"))
                 output.add(i);
+        }
         rolls = output.stream().mapToDouble(d -> d).toArray();
     }
 
@@ -431,9 +493,15 @@ class Rolls{
      */
     public void keep(String conditions) {
         ArrayList<Double> output = new ArrayList<>();
-        for (double i : rolls)
-            if (Expression.satisfiesConditions(i, conditions))
+        for (double i : rolls) {
+            String result = Expression.satisfiesConditions(i, conditions);
+            if (result.startsWith("ERR ")) {
+                errorCode = result.substring(4);
+                return;
+            }
+            if (result.equals("true"))
                 output.add(i);
+            }
         rolls = output.stream().mapToDouble(d -> d).toArray();
     }
 
@@ -442,22 +510,37 @@ class Rolls{
      * @param conditions    Must be fed as (operator)(number) separated by commas. Valid operators are <, <=, >, >=, !=, and =
      * @param maxExplosions Maximum number of explosion dice rolls
      */
-    public void explode(String conditions, int maxExplosions) throws IllegalArgumentException {
-        if (maxExplosions > 50) throw new IllegalArgumentException("Rollplayer cannot set maximum explosion cap above 50");
+    public void explode(String conditions, int maxExplosions) {
+        if (maxExplosions > 50) {
+            errorCode = "Rollplayer cannot set maximum explosion cap above 50";
+            return;
+        }
         ArrayList<Double> output = new ArrayList<>();
         for(double i : rolls){
             output.add(i);
         }
 
         int explosionsRemaining = 0, explosionsCounter = 0;
-        for (double i : rolls)
-            if (Expression.satisfiesConditions(i, conditions))
+        for (double i : rolls) {
+            String result = Expression.satisfiesConditions(i, conditions);
+            if (result.startsWith("ERR ")) {
+                errorCode = result.substring(4);
+                return;
+            }
+            if (result.equals("true"))
                 explosionsRemaining++;
+        }
 
         while (explosionsRemaining > 0 && explosionsCounter < maxExplosions) {
             explosionsCounter++;
             output.add(rollNumber());
-            if (Expression.satisfiesConditions(output.getLast(), conditions))
+
+            String result = Expression.satisfiesConditions(output.getLast(), conditions);
+            if (result.startsWith("ERR ")) {
+                errorCode = result.substring(4);
+                return;
+            }
+            if (result.equals("true"))
                 continue;
             explosionsRemaining--;
         }
@@ -469,22 +552,37 @@ class Rolls{
             explode("=" + maxRoll, maxExplosions);
     }
 
-    public void imod(ArrayList<String> conditions, ArrayList<String> mathTokens) throws IllegalArgumentException{
+    public void imod(ArrayList<String> conditions, ArrayList<String> mathTokens) {
         ArrayList<String> math = new ArrayList<>();
         for(String cond : conditions) {
             if(!cond.equals("*")) {
                 math.clear(); // don't make my dummy mistake of setting the references equal
                 math.addAll(mathTokens);
                 int rollIndex = (int)Double.parseDouble(cond) - 1; // reminder that tokens will be in double format
-                if (rollIndex >= rolls.length || rollIndex < 0) throw new IllegalArgumentException(String.format("I-mod index out of bounds: %d of %d", rollIndex+1, rolls.length));
+                if (rollIndex >= rolls.length || rollIndex < 0) {
+                    errorCode = String.format("I-mod index out of bounds: %d of %d", rollIndex+1, rolls.length);
+                    return;
+                }
                 math.addFirst("" + rolls[rollIndex]);
-                rolls[rollIndex] = new MathSolver(math).evaluate();
+
+                MathSolver evaluator = new MathSolver(math);
+                if (evaluator.isError()) {
+                    errorCode = evaluator.getError();
+                    return;
+                }
+                rolls[rollIndex] = evaluator.evaluate();
             } else {
                 for(int i = 0; i < rolls.length; i++) {
                     math.clear();
                     math.addAll(mathTokens);
                     math.addFirst("" + rolls[i]);
-                    rolls[i] = new MathSolver(math).evaluate();
+
+                    MathSolver evaluator = new MathSolver(math);
+                    if (evaluator.isError()) {
+                        errorCode = evaluator.getError();
+                        return;
+                    }
+                    rolls[i] = evaluator.evaluate();
                 }
             }
         }

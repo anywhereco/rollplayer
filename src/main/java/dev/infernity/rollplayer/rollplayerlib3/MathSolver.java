@@ -18,7 +18,9 @@ interface Node{
             this.symbol = symbol;
             this.operation = operation;
         }
-        public String getSymbol() { return symbol; }
+        public String getSymbol() {
+            return symbol;
+        }
 
         @Override
         public double applyAsDouble(final double left, final double right) {
@@ -30,76 +32,100 @@ interface Node{
 
 public class MathSolver extends Expression {
     Node rootNode;
+    String errorCode;
 
-    public MathSolver(ArrayList<String> tokens) throws IllegalArgumentException{
+    public MathSolver(ArrayList<String> tokens) {
         super(tokens);
         rootNode = parseAdd(); // despite the confusing name this generates the entire tree
-        if (!peek("EOF")) throw new RuntimeException("Reached end of token stream while parsing: " + tokenStream.subList(pointer, tokenStream.size()));
+        if (rootNode instanceof ErrorNode) errorCode = ((ErrorNode) rootNode).getError();
+        if (!peek("EOF")) errorCode = "Reached end of math expression while solving: " + tokenStream.subList(pointer, tokenStream.size());
     }
 
     public double evaluate() {
         return rootNode.evaluate();
     }
+
+    public boolean isError() {
+        return errorCode != null;
+    }
+    public String getError() {
+        return errorCode;
+    }
+
     //for more information on ASTs i used this lecture: https://andrewcmyers.github.io/oodds/lecture.html?id=parsing
 
     // operations by tier
     // +- */ ^ number ()
 
     // Add > Mult (+- Mult)*
-    private Node parseAdd() throws IllegalArgumentException{
+    private Node parseAdd() {
         Node e = parseMult();
+        if (e instanceof ErrorNode) return e;
         while (peek(Node.BinaryOp.PLUS.getSymbol()) || peek(Node.BinaryOp.MINUS.getSymbol())) {
             if(peek(Node.BinaryOp.PLUS.getSymbol())) {
                 consume();
-                e = new Binary(Node.BinaryOp.PLUS, e, parseMult());
+                Node f = parseMult();
+                if (f instanceof ErrorNode) return f;
+                e = new Binary(Node.BinaryOp.PLUS, e, f);
             } else {
                 consume();
-                e = new Binary(Node.BinaryOp.MINUS, e, parseMult());
+                Node f = parseMult();
+                if (f instanceof ErrorNode) return f;
+                e = new Binary(Node.BinaryOp.MINUS, e, f);
             }
         }
         return e;
     }
 
     // Mult > Pow (*/ Pow)*
-    private Node parseMult() throws IllegalArgumentException{
+    private Node parseMult() {
         Node e = parsePow();
+        if (e instanceof ErrorNode) return e;
         while (peek(Node.BinaryOp.TIMES.getSymbol()) || peek(Node.BinaryOp.DIVIDE.getSymbol())) {
             if(peek(Node.BinaryOp.TIMES.getSymbol())) {
                 consume();
-                e = new Binary(Node.BinaryOp.TIMES, e, parsePow());
+                Node f = parsePow();
+                if (f instanceof ErrorNode) return f;
+                e = new Binary(Node.BinaryOp.TIMES, e, f);
             } else {
                 consume();
-                e = new Binary(Node.BinaryOp.DIVIDE, e, parsePow());
+                Node f = parsePow();
+                if (f instanceof ErrorNode) return f;
+                e = new Binary(Node.BinaryOp.DIVIDE, e, f);
             }
         }
         return e;
     }
 
     // Pow > Num (^ Num)*
-    private Node parsePow() throws IllegalArgumentException{
+    private Node parsePow() {
         Node e = parseNum();
+        if (e instanceof ErrorNode) return e;
         while (peek(Node.BinaryOp.EXPONENT.getSymbol())) {
             consume();
-            e = new Binary(Node.BinaryOp.EXPONENT, e, parseNum());
+            Node f = parseNum();
+            if (f instanceof ErrorNode) return f;
+            e = new Binary(Node.BinaryOp.EXPONENT, e, f);
         }
         return e;
     }
 
     // Num > double | (Add)
-    private Node parseNum() throws IllegalArgumentException{
+    private Node parseNum() {
         if (isNumber(peek())) {
             Node e = new Number(Double.parseDouble(consume()));
-            if(isNumber(peek())) throw new IllegalArgumentException("MathSolver has been passed two successive number tokens\nThis is likely because the expression has a roll modifier which has been improperly followed by a number");
+            if(isNumber(peek())) return new ErrorNode("MathSolver has been passed two successive number tokens\nThis is likely because the expression has a roll modifier which has been improperly followed by a number");
             return e;
         }
         else {
-            try { consume("("); }
-            catch (IllegalArgumentException e) {
-                if (peek("EOF")) throw new IllegalArgumentException("Reached end of token stream while parsing: " + tokenStream);
-                else throw new IllegalArgumentException("Neither number nor parenthesis found in number node parse: " + peek() + " in " + tokenStream);
+            consume("(");
+            if (!errorReturn.isEmpty()) {
+                if (peek("EOF")) return new ErrorNode("Reached end of math expression while solving: " + tokenStream);
+                else return new ErrorNode("Neither number nor parenthesis found as argument: " + peek() + " in " + tokenStream);
             }
             Node e = parseAdd();
             consume(")");
+            if (!errorReturn.isEmpty()) return new ErrorNode(errorReturn);
             return e;
         }
     }
@@ -114,5 +140,14 @@ record Binary(BinaryOp operator, Node left, Node right) implements Node {
 record Number(double value) implements Node {
     public double evaluate() {
         return value;
+    }
+}
+
+record ErrorNode(String error) implements Node {
+    public double evaluate() {
+        return 0;
+    }
+    public String getError() {
+        return error;
     }
 }

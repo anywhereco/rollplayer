@@ -7,8 +7,9 @@ public class Parser {
      * @param input Raw user command input
      * @return Arraylist of expression results as strings. All numbers should return as doubles so if you want to pretty it up you have to fix that
      * <br>If an inputted expression had no math, it will return int the form "r (num) (num) (num)..." from the rolls, also as doubles
+     * <p>Errors are returned prefaced with "ERR" token
      */
-    public static ArrayList<String> evaluate(String input) throws IllegalArgumentException {
+    public static ArrayList<String> evaluate(String input) {
         ArrayList<String> output = new ArrayList<>();
         ArrayList<String> expressions = removeWhitespace(input);
 
@@ -23,14 +24,14 @@ public class Parser {
             ArrayList<String> tester = stringTokenizer(exp);
             if (tester.getFirst().equals("ERR")) {
                 output.add("ERR");
-                output.add(String.format("Exception with expression %s caught\n%s", exp, tester.get(1)));
+                output.add(String.format("Error with expression %s caught\n%s", exp, tester.get(1)));
                 return output;
             }
 
             tester = evaluateDice(tester);
             if (tester.getFirst().equals("ERR")) {
                 output.add("ERR");
-                output.add(String.format("Exception with diceroll caught in expression %s \n%s", exp, tester.get(1)));
+                output.add(String.format("Error with dice-rolling step caught in expression %s \n%s", exp, tester.get(1)));
                 return output;
             }
 
@@ -48,15 +49,17 @@ public class Parser {
                 output.add(rolls.toString());
             }
             //if the input expression had math in it
-            else try {
-                output.add("" + new MathSolver(expression).evaluate());
-            } catch (IllegalArgumentException e) {
-                StringBuilder reconstructor = new StringBuilder();
-                for(String s : expression) reconstructor.append(s);
-                output.clear();
-                output.add("ERR");
-                output.add(String.format(String.format("Exception caught while evaluating math expression %s\n%s", reconstructor, e)));
-                return output;
+            else {
+                MathSolver evaluator = new MathSolver(expression);
+                if (evaluator.isError()) {
+                    StringBuilder reconstructor = new StringBuilder();
+                    for(String s : expression) reconstructor.append(s);
+                    output.clear();
+                    output.add("ERR");
+                    output.add(String.format(String.format("Error caught while evaluating math expression %s\n%s", reconstructor, evaluator.getError())));
+                    return output;
+                }
+                output.add("" + evaluator.evaluate());
             }
         }
 
@@ -68,7 +71,7 @@ public class Parser {
      * @param minmax Should only be "min" or "max"
      * @return Double sum value of expression result
      */
-    public static double expressionMinMax(String expression, String minmax) throws IllegalArgumentException {
+    public static double expressionMinMax(String expression, String minmax) {
         ArrayList<String> tokens = stringTokenizer(expression);
         tokens = evaluateDice(tokens, minmax);
 
@@ -78,7 +81,9 @@ public class Parser {
                 sum += Double.parseDouble(value);
             return sum;
         } else {
-            return new MathSolver(tokens).evaluate();
+            MathSolver evaluator = new MathSolver(tokens);
+            if (evaluator.isError()) return Double.NaN;
+            return evaluator.evaluate();
         }
     }
 
@@ -87,7 +92,7 @@ public class Parser {
      * @param minmax Should only be "min" or "max"
      * @return Double sum of expression min/max results
      */
-    public static double evaluateMinMax(ArrayList<String> expressions, String minmax) throws IllegalArgumentException {
+    public static double evaluateMinMax(ArrayList<String> expressions, String minmax) {
         ArrayList<String> toEvaluate = new ArrayList<>();
         for(String exp : expressions) {
             if(exp.contains("{")) continue; //skip everything with a condition
@@ -95,8 +100,11 @@ public class Parser {
         }
 
         double sum = 0;
-        for(String exp : toEvaluate)
-            sum += expressionMinMax(exp, minmax);
+        for(String exp : toEvaluate) {
+            double result = expressionMinMax(exp, minmax);
+            if (Double.isNaN(result)) return result;
+            sum += result;
+        }
 
         return sum;
     }
@@ -321,10 +329,10 @@ public class Parser {
      * <br>If the expression only contained a dice roll expression and no math, it returns all of the rolls as tokens in a list headed by a "Dice Roll Expression" metatoken
      * <br>Returns ["ERR", "(error text)"] if an exception is encountered
      */
-    public static ArrayList<String> evaluateDice(ArrayList<String> input) throws IllegalArgumentException {
+    public static ArrayList<String> evaluateDice(ArrayList<String> input) {
         return evaluateDice(input, "");
     }
-    public static ArrayList<String> evaluateDice(ArrayList<String> input, String minmax) throws IllegalArgumentException {
+    public static ArrayList<String> evaluateDice(ArrayList<String> input, String minmax) {
         //dummy return
         if(!input.contains("d")) return input;
 
@@ -469,6 +477,12 @@ public class Parser {
             // evaluate roll
             DiceRoller evaluator = new DiceRoller(toEvaluate, minmax);
             Rolls evaluation = evaluator.evaluateExpression();
+            if (evaluation.isError()) {
+                output.clear();
+                output.add("ERR");
+                output.add(evaluation.getError());
+                return output;
+            }
 
             // if the expression was just a dice roll with no math, return it in a special way and head it with a metatoken
             if (firstPass && expressionEnd >= input.size()-1) {
