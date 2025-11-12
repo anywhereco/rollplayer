@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.interactions.callbacks.IMessageEditCallback;
 import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -18,7 +19,7 @@ import java.util.UUID;
 
 public class PaginationManager implements EventListener {
     private final Map<UUID, PaginationComponent> componentMap = new HashMap<>();
-
+    private long lastCleanup = Instant.now().getEpochSecond();
     public <T extends IReplyCallback> void post(PaginationComponent pc, T interaction) {
         componentMap.put(pc.uuid, pc);
         interaction.replyComponents(pc.asContainer()).useComponentsV2().queue();
@@ -38,6 +39,14 @@ public class PaginationManager implements EventListener {
                 stringSelectPageChange(stringSelectInteractionEvent);
             }
         }
+        if (lastCleanup + 300 < Instant.now().getEpochSecond()) {
+            mapCleanup();
+        }
+    }
+
+    private void mapCleanup(){
+        componentMap.entrySet().removeIf(entry -> entry.getValue().expiresAt < Instant.now().getEpochSecond());
+        lastCleanup = Instant.now().getEpochSecond();
     }
 
     private PaginationComponent.Result toPage(PaginationComponent pc, int page){
