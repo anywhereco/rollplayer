@@ -39,6 +39,10 @@ public abstract class SimpleCommandListener implements EventListener, CommandDat
         return List.of(Commands.slash(commandName, commandDescription).setContexts(InteractionContextType.ALL).setIntegrationTypes(IntegrationType.ALL));
     }
 
+    public String getTitle(){
+        return String.format("### %s /%s", commandEmoji, commandName);
+    }
+
     public Container createContainer(TextDisplay title, List<ContainerChildComponent> list){
         list.add(0, title);
         list.add(1, Separator.createInvisible(Separator.Spacing.SMALL));
@@ -60,6 +64,7 @@ public abstract class SimpleCommandListener implements EventListener, CommandDat
         throw new RuntimeException("A button was pressed with this listener, but no override was given to onButtonPress! Event ID: " + event.getComponentId());
     }
 
+    @SuppressWarnings("unused")
     public String namespacedId(String identifier) {
         return commandName + ":" + identifier;
     }
