@@ -168,7 +168,7 @@ public class Resources {
     /// @param e The exception to log. May be null.
     /// @param extras Any extra components to append.
     /// @return An error code to show to the user.
-    public String tryLogException(Exception e, ContainerChildComponent... extras){
+    public String tryLogException(Throwable e, ContainerChildComponent... extras){
         return tryLogException(e, Arrays.asList(extras));
     }
 
@@ -176,8 +176,9 @@ public class Resources {
     /// @param e The exception to log. May be null.
     /// @param extras Any extra components to append.
     /// @return An error code to show to the user.
-    public String tryLogException(Exception e, Collection<ContainerChildComponent> extras){
+    public String tryLogException(Throwable e, Collection<ContainerChildComponent> extras){
         String trace;
+        String msg;
         String name;
         String errcode = generateRandomAlphanumericString(8);
         if (Objects.nonNull(e)){
@@ -187,13 +188,16 @@ public class Resources {
             if (trace.length() == 2000) {
                 trace += "...";
             }
+            msg = e.getMessage();
             name = e.getClass().getName();
         } else {
             trace = "<no trace>";
+            msg = "<no message>";
             name = "error";
         }
         ArrayList<ContainerChildComponent> els = new ArrayList<>();
         els.add(TextDisplay.ofFormat("## A(n) %s occured!", name));
+        els.add(TextDisplay.of(msg));
         if (Objects.nonNull(extras)) {
             els.addAll(extras);
         }
