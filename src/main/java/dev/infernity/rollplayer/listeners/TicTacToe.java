@@ -26,15 +26,15 @@ import java.util.*;
 
 public class TicTacToe extends SimpleCommandListener {
     private class TTTGameState{
-        public int width;
-        public int victoryRequirement;
-        public TileState[][] grid;
-        public User playerX;
+        public final int width;
+        public final int victoryRequirement;
+        public final TileState[][] grid;
+        public final User playerX;
         @Nullable
         public User playerO;
         public GameResult result;
         public GameState state;
-        public long expirationTimestamp;
+        public final long expirationTimestamp;
         private boolean singleplayer;
 
         TTTGameState(
@@ -42,24 +42,21 @@ public class TicTacToe extends SimpleCommandListener {
                 int victoryRequirement,
                 TileState[][] grid,
                 User playerX,
-                @Nullable User playerO,
-                GameResult gameResult,
-                GameState state,
                 long expirationTimestamp
         ) {
             this.width = width;
             this.victoryRequirement = victoryRequirement;
             this.grid = grid;
             this.playerX = playerX;
-            this.playerO = playerO;
-            this.result = gameResult;
-            this.state = state;
+            this.playerO = null;
+            this.result = GameResult.INCOMPLETE;
+            this.state = GameState.WAITING_FOR_PLAYER;
             this.expirationTimestamp = expirationTimestamp;
             this.singleplayer = false;
         }
 
         TTTGameState(int width, int victoryRequirement, User user) {
-            this(width, victoryRequirement, initializeEmpty(width), user, null, GameResult.INCOMPLETE, GameState.WAITING_FOR_PLAYER, Instant.now().getEpochSecond() + 900);
+            this(width, victoryRequirement, initializeEmpty(width), user, Instant.now().getEpochSecond() + 900);
         }
 
         public static TileState[][] initializeEmpty(int width){

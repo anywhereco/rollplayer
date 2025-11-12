@@ -6,7 +6,7 @@ import net.dv8tion.jda.api.components.separator.Separator;
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay;
 
 public class ErrorTemplate {
-    public static String errorEmoji = Resources.getInstance().getConfig().getString("emoji.error", "❌");
+    public static final String errorEmoji = Resources.getInstance().getConfig().getString("emoji.error", "❌");
 
     public static Container of(String error) {
         return of(error, null);

@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Objects;
 
 public class Rollplayer extends ListenerAdapter {
-    public static void main(String[] ignoredArgs) {
+    static void main(String[] ignoredArgs) {
         Runtime.getRuntime().addShutdownHook(new Thread(Resources.getInstance()::saveSettings));
 
         String token = Resources.getInstance().getConfig().getString("discord.token");

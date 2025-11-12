@@ -38,8 +38,8 @@ public class PaginationComponent {
     public long expiresAt;
     public int page;
     public boolean inStringSelectMenu;
-    public long menuOpener;
-    public String header;
+    public final long menuOpener;
+    public final String header;
 
     public PaginationComponent(List<Page> pages, User menuOpener, @Nullable String header) {
         this.pages = pages;

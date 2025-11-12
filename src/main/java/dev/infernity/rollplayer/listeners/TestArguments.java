@@ -12,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.Objects;
 
+@SuppressWarnings("unused")
 public class TestArguments extends SimpleCommandListener {
     public TestArguments() {
         super("testargs", "testargs desc", "\uD83D\uDD27");

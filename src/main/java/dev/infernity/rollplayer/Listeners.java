@@ -9,8 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Listeners {
-    public List<EventListener> listeners = new ArrayList<>();
-    public ArrayList<CommandData> commands = new ArrayList<>();
+    public final List<EventListener> listeners = new ArrayList<>();
+    public final ArrayList<CommandData> commands = new ArrayList<>();
 
     public Listeners(){
         var pm = new PaginationManager();

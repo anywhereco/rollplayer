@@ -3,6 +3,7 @@ package dev.infernity.rollplayer.settings;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import dev.infernity.rollplayer.Resources;
 
 import java.io.File;
 import java.io.FileReader;
@@ -45,7 +46,7 @@ public class SettingsManager {
         try (FileWriter writer = new FileWriter(settingsFile)) {
             gson.toJson(userSettings, writer);
         } catch (IOException e) {
-            e.printStackTrace();
+            Resources.getInstance().getLogger().error("An error occurred while saving settings: ", e);
         }
     }
 

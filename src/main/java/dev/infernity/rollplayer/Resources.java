@@ -88,7 +88,7 @@ public class Resources {
         return sb.toString();
     }
 
-    private String initializeVersion(Properties properties) throws IOException {
+    private String initializeVersion(Properties properties) {
         var version = properties.get("application.version");
         if (version == null) {
             return "(unknown version)";
@@ -96,7 +96,7 @@ public class Resources {
         return (String) version;
     }
 
-    private String initializeName(Properties properties) throws IOException {
+    private String initializeName(Properties properties) {
         var name = properties.get("application.name");
         if (name == null) {
             return "(unknown name)";
@@ -104,7 +104,7 @@ public class Resources {
         return (String) name;
     }
 
-    private String initializeTimestamp(Properties properties) throws IOException {
+    private String initializeTimestamp(Properties properties) {
         var timestamp = properties.get("application.buildtime");
         if (timestamp == null) {
             return "(unknown timestamp)";
@@ -140,6 +140,7 @@ public class Resources {
         return settingsManager;
     }
 
+    @SuppressWarnings("unused")
     public JDA getJda() {
         return jda;
     }
