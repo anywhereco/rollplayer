@@ -9,16 +9,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Listeners {
-    public List<EventListener> listeners;
+    public List<EventListener> listeners = new ArrayList<>();
     public ArrayList<CommandData> commands = new ArrayList<>();
 
     public Listeners(){
-        this.listeners = List.of(new EightBall(), new Choose(), new TicTacToe(), new Info(), new Roll(), new Settings());
+        var pm = new PaginationManager();
+        this.listeners.addAll(List.of(new EightBall(), new Choose(), new TicTacToe(), new Info(), new Roll(), new Settings(), pm));
         // this.listeners.addAll(List.of(new Test(), new TestArguments()));
         for (EventListener listener : listeners) {
             if (listener instanceof CommandDataCapable capable) {
                 commands.addAll(capable.getCommandData());
             }
         }
+        Resources.getInstance().setPaginationManager(pm);
     }
 }

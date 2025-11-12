@@ -1,6 +1,7 @@
 package dev.infernity.rollplayer;
 
 import dev.infernity.rollplayer.files.JarPather;
+import dev.infernity.rollplayer.listeners.PaginationManager;
 import dev.infernity.rollplayer.settings.SettingsManager;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.components.container.Container;
@@ -33,6 +34,7 @@ public class Resources {
     private final SettingsManager settingsManager;
     private JDA jda;
     private TextChannel debugChannel;
+    private PaginationManager paginationManager;
 
     private Resources() {
         this.logger = LoggerFactory.getLogger("Rollplayer");
@@ -72,6 +74,7 @@ public class Resources {
         return INSTANCE;
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static String generateRandomAlphanumericString(int length) {
         var random = new Random();
         if (length < 0) {
@@ -144,6 +147,14 @@ public class Resources {
     public void setJda(JDA jda) {
         this.jda = jda;
         this.debugChannel = jda.getTextChannelById(this.getConfig().getLong("debug.loggingChannel", 0L));
+    }
+
+    public PaginationManager getPaginationManager() {
+        return paginationManager;
+    }
+
+    public void setPaginationManager(PaginationManager pm) {
+        this.paginationManager = pm;
     }
 
     @SuppressWarnings("unused")
