@@ -12,7 +12,7 @@ public class RollHelp extends SimpleCommandListener {
     private final ArrayList<PaginationComponent.Page> pages = new ArrayList<>();
 
     public RollHelp() {
-        super("roll_help", "Get help about /roll.", "\uD83D\uDCD6");
+        super("rollhelp", "Get help about /roll.", "\uD83D\uDCD6");
 
         pages.add(new PaginationComponent.Page("Basics", """
             You can roll a dice by just inputting a number with a "d" before it, e.g. `d100`, which will roll a dice with that many sides.
