@@ -282,6 +282,10 @@ public class Parser {
                         outputList.add(input.substring(stringIterator, stringIterator + 2));
                         stringIterator += 2;
                         continue;
+                    case "..":
+                        outputList.add(":");
+                        stringIterator += 2;
+                        continue;
                 }
             }
 
@@ -303,6 +307,8 @@ public class Parser {
                 int intLength = 0;
                 // big condition but it just means "keep checking characters until it hits a non-digit"
                 while(stringIterator+intLength < input.length() && input.substring(stringIterator+intLength,stringIterator+intLength+1).matches("\\.|\\d")){
+                    if(input.startsWith("..",stringIterator+intLength))
+                        break; // necesary break because .. is actually :
                     intLength++;
                 }
                 substringIteration = input.substring(stringIterator, stringIterator+intLength);
