@@ -52,18 +52,38 @@ public class Expression {
         String[] conditionArray = conditions.split(",");
 
         for(String cond : conditionArray) {
+            if (isNumber(cond)) cond = "=" + cond; // {3,4,5} is {=3,=4,=5}
+
+            // ranges {3:5} are formatted differently so it gets a special treatment
+            if (cond.matches("\\d+\\.?\\d+:\\d+\\.?\\d+")) {
+                String[] ends = cond.split(":");
+                double lowBound, highBound;
+                if (Double.parseDouble(ends[0]) > Double.parseDouble(ends[1])) {
+                    lowBound = Double.parseDouble(ends[1]);
+                    highBound = Double.parseDouble(ends[0]);
+                } else {
+                    lowBound = Double.parseDouble(ends[0]);
+                    highBound = Double.parseDouble(ends[1]);
+                }
+
+                if (testValue > lowBound && testValue < highBound) return "true";
+                else continue;
+            }
+
             double conditionValue;
             switch(cond.charAt(0)) {
                 case '>':
                     if(cond.length() < 2) return "ERR Condition < with no number is invalid";
                     if(cond.charAt(1) == '=') {
                         if(cond.length() < 3) return "ERR Condition <= with no number is invalid";
+                        if(!isNumber(cond.substring(2))) return "ERR Condition <= succeeded by invalid number";
                         conditionValue = Double.parseDouble(cond.substring(2));
                         if(testValue >= conditionValue) {
                             return "true";
                         } else continue;
                     } else {
                         conditionValue = Double.parseDouble(cond.substring(1));
+                        if(!isNumber(cond.substring(2))) return "ERR Condition < succeeded by invalid number";
                         if(testValue > conditionValue) {
                             return "true";
                         } else continue;
@@ -73,12 +93,14 @@ public class Expression {
                     if(cond.length() < 2) return "ERR Condition > with no number is invalid";
                     if(cond.charAt(1) == '=') {
                         if(cond.length() < 3) return "ERR Condition >= with no number is invalid";
+                        if(!isNumber(cond.substring(2))) return "ERR Condition >= succeeded by invalid number";
                         conditionValue = Double.parseDouble(cond.substring(2));
                         if(testValue <= conditionValue) {
                             return "true";
                         } else continue;
                     } else {
                         conditionValue = Double.parseDouble(cond.substring(1));
+                        if(!isNumber(cond.substring(2))) return "ERR Condition > succeeded by invalid number";
                         if(testValue < conditionValue) {
                             return "true";
                         } else continue;
@@ -87,6 +109,7 @@ public class Expression {
                 case '!':
                     if(cond.charAt(1) != '=') return "ERR Condition ! with no = is invalid";
                     if(cond.length() < 3) return "ERR Condition != with no number is invalid";
+                    if(!isNumber(cond.substring(2))) return "ERR Condition != succeeded by invalid number";
                     conditionValue = Double.parseDouble(cond.substring(2));
                     if(testValue != conditionValue) {
                         return "true";
@@ -94,6 +117,7 @@ public class Expression {
 
                 case '=':
                     if(cond.length() < 2) return "ERR Condition = with no number is invalid";
+                    if(!isNumber(cond.substring(1))) return "ERR Condition = succeeded by invalid number";
                     conditionValue = Double.parseDouble(cond.substring(1));
                     if(testValue == conditionValue) {
                         return "true";
