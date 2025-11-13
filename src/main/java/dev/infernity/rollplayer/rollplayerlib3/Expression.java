@@ -35,9 +35,9 @@ public class Expression {
         }
         else errorReturn = "Expected "+s+", got "+peek();
     }
-    protected boolean isNumber(String s) {
-        if (s.matches("\\d+.\\d+")) return true;
-        if (s.matches("\\d.\\d+[eE]\\d+")) return true;
+    protected static boolean isNumber(String s) {
+        if (s.matches("\\d+\\.?\\d+")) return true;
+        if (s.matches("\\d\\.?\\d+[eE]\\d+")) return true;
         return false;
     }
 
