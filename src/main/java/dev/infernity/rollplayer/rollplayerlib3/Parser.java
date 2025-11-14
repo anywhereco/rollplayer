@@ -306,12 +306,18 @@ public class Parser {
             if (substringIteration.matches("\\.|\\d")) {
                 int intLength = 0;
                 // big condition but it just means "keep checking characters until it hits a non-digit"
-                while(stringIterator+intLength < input.length() && input.substring(stringIterator+intLength,stringIterator+intLength+1).matches("\\.|\\d")){
+                while(stringIterator+intLength < input.length() && input.substring(stringIterator+intLength,stringIterator+intLength+1).matches("\\.?|\\d")){
                     if(input.startsWith("..",stringIterator+intLength))
                         break; // necesary break because .. is actually :
                     intLength++;
                 }
                 substringIteration = input.substring(stringIterator, stringIterator+intLength);
+                if (substringIteration.matches("(.*\\.){2}.*")) {  //(any).(any).(any) regex
+                    outputList.clear();
+                    outputList.add("ERR");
+                    outputList.add("More than one decimal point detected " + substringIteration);
+                    return outputList;
+                }
                 outputList.add("" + Double.parseDouble(substringIteration));
 
                 stringIterator += intLength;
@@ -368,7 +374,7 @@ public class Parser {
 
             //load pre-dice tokens into output
             if (expressionEnd > 0) // avoids a dummy error
-                if (input.get(expressionEnd).equals("d") && input.get(expressionEnd - 1).matches("\\d+.\\d+"))
+                if (input.get(expressionEnd).equals("d") && input.get(expressionEnd - 1).matches("\\d+\\.?\\d+"))
                     expressionEnd--;
             if (expressionEnd > 0) {
                 output.addAll(input.subList(expressionStart, expressionEnd));
@@ -378,7 +384,7 @@ public class Parser {
             //load dice tokens into toEvaluate
             boolean validToken = true;
             boolean hasDiceRoll = false;
-            if (input.get(expressionEnd).matches("\\d+.\\d+")) {
+            if (input.get(expressionEnd).matches("\\d+\\.?\\d+")) {
                 toEvaluate.add(input.get(expressionEnd));
                 expressionEnd++;
             }
@@ -403,7 +409,7 @@ public class Parser {
                         break;
                     case "kh", "kl":
                         toEvaluate.add(input.get(expressionEnd));
-                        if (input.get(expressionEnd + 1).matches("\\d+.\\d+")) {
+                        if (input.get(expressionEnd + 1).matches("\\d+\\.?\\d+")) {
                             toEvaluate.add(input.get(expressionEnd + 1));
                             expressionEnd += 2;
                             break;

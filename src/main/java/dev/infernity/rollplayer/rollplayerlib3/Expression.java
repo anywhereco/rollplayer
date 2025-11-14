@@ -35,9 +35,9 @@ public class Expression {
         }
         else errorReturn = "Expected "+s+", got "+peek();
     }
-    protected boolean isNumber(String s) {
-        if (s.matches("\\d+.\\d+")) return true;
-        if (s.matches("\\d.\\d+[eE]\\d+")) return true;
+    protected static boolean isNumber(String s) {
+        if (s.matches("\\d+\\.?\\d+")) return true;
+        if (s.matches("\\d\\.?\\d+[eE]\\d+")) return true;
         return false;
     }
 
@@ -52,18 +52,38 @@ public class Expression {
         String[] conditionArray = conditions.split(",");
 
         for(String cond : conditionArray) {
+            if (isNumber(cond)) cond = "=" + cond; // {3,4,5} is {=3,=4,=5}
+
+            // ranges {3:5} are formatted differently so it gets a special treatment
+            if (cond.matches("\\d+\\.?\\d+:\\d+\\.?\\d+")) {
+                String[] ends = cond.split(":");
+                double lowBound, highBound;
+                if (Double.parseDouble(ends[0]) > Double.parseDouble(ends[1])) {
+                    lowBound = Double.parseDouble(ends[1]);
+                    highBound = Double.parseDouble(ends[0]);
+                } else {
+                    lowBound = Double.parseDouble(ends[0]);
+                    highBound = Double.parseDouble(ends[1]);
+                }
+
+                if (testValue > lowBound && testValue < highBound) return "true";
+                else continue;
+            }
+
             double conditionValue;
             switch(cond.charAt(0)) {
                 case '>':
                     if(cond.length() < 2) return "ERR Condition < with no number is invalid";
                     if(cond.charAt(1) == '=') {
                         if(cond.length() < 3) return "ERR Condition <= with no number is invalid";
+                        if(!isNumber(cond.substring(2))) return "ERR Condition <= succeeded by invalid number";
                         conditionValue = Double.parseDouble(cond.substring(2));
                         if(testValue >= conditionValue) {
                             return "true";
                         } else continue;
                     } else {
                         conditionValue = Double.parseDouble(cond.substring(1));
+                        if(!isNumber(cond.substring(2))) return "ERR Condition < succeeded by invalid number";
                         if(testValue > conditionValue) {
                             return "true";
                         } else continue;
@@ -73,12 +93,14 @@ public class Expression {
                     if(cond.length() < 2) return "ERR Condition > with no number is invalid";
                     if(cond.charAt(1) == '=') {
                         if(cond.length() < 3) return "ERR Condition >= with no number is invalid";
+                        if(!isNumber(cond.substring(2))) return "ERR Condition >= succeeded by invalid number";
                         conditionValue = Double.parseDouble(cond.substring(2));
                         if(testValue <= conditionValue) {
                             return "true";
                         } else continue;
                     } else {
                         conditionValue = Double.parseDouble(cond.substring(1));
+                        if(!isNumber(cond.substring(2))) return "ERR Condition > succeeded by invalid number";
                         if(testValue < conditionValue) {
                             return "true";
                         } else continue;
@@ -87,6 +109,7 @@ public class Expression {
                 case '!':
                     if(cond.charAt(1) != '=') return "ERR Condition ! with no = is invalid";
                     if(cond.length() < 3) return "ERR Condition != with no number is invalid";
+                    if(!isNumber(cond.substring(2))) return "ERR Condition != succeeded by invalid number";
                     conditionValue = Double.parseDouble(cond.substring(2));
                     if(testValue != conditionValue) {
                         return "true";
@@ -94,6 +117,7 @@ public class Expression {
 
                 case '=':
                     if(cond.length() < 2) return "ERR Condition = with no number is invalid";
+                    if(!isNumber(cond.substring(1))) return "ERR Condition = succeeded by invalid number";
                     conditionValue = Double.parseDouble(cond.substring(1));
                     if(testValue == conditionValue) {
                         return "true";
@@ -118,6 +142,7 @@ class DiceRoller extends Expression{
         tokenStream.addFirst("BOF");
     }
 
+    @SuppressWarnings("unused")
     public DiceRoller (ArrayList<String> tokens) {
         this(tokens, "");
     }
@@ -304,6 +329,7 @@ class Rolls{
         this.errorCode = "";
     }
 
+    @SuppressWarnings("unused")
     Rolls(double[] rolls, int die) {
         this(rolls, 1, die, "");
     }
@@ -319,6 +345,7 @@ class Rolls{
         }
     }
 
+    @SuppressWarnings("unused")
     Rolls(int rollCount, int die) {
         this(rollCount, 1, die);
     }
@@ -444,6 +471,7 @@ class Rolls{
      * Rerolls dice that fulfill given conditions once
      * @param conditions Must be fed as (operator)(number) separated by commas. Valid operators are <, <=, >, >=, !=, and =
      */
+    @SuppressWarnings("unused")
     public void reroll(String conditions) {
         reroll(conditions, 1);
     }
@@ -491,6 +519,7 @@ class Rolls{
      * Removes rolls that do not satisfy input conditions
      * @param conditions Must be fed as (operator)(number) separated by commas. Valid operators are <, <=, >, >=, !=, and =
      */
+    @SuppressWarnings("unused")
     public void keep(String conditions) {
         ArrayList<Double> output = new ArrayList<>();
         for (double i : rolls) {
