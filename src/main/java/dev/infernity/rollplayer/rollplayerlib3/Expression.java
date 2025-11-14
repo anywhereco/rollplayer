@@ -142,6 +142,7 @@ class DiceRoller extends Expression{
         tokenStream.addFirst("BOF");
     }
 
+    @SuppressWarnings("unused")
     public DiceRoller (ArrayList<String> tokens) {
         this(tokens, "");
     }
@@ -328,6 +329,7 @@ class Rolls{
         this.errorCode = "";
     }
 
+    @SuppressWarnings("unused")
     Rolls(double[] rolls, int die) {
         this(rolls, 1, die, "");
     }
@@ -343,6 +345,7 @@ class Rolls{
         }
     }
 
+    @SuppressWarnings("unused")
     Rolls(int rollCount, int die) {
         this(rollCount, 1, die);
     }
@@ -468,6 +471,7 @@ class Rolls{
      * Rerolls dice that fulfill given conditions once
      * @param conditions Must be fed as (operator)(number) separated by commas. Valid operators are <, <=, >, >=, !=, and =
      */
+    @SuppressWarnings("unused")
     public void reroll(String conditions) {
         reroll(conditions, 1);
     }
@@ -515,6 +519,7 @@ class Rolls{
      * Removes rolls that do not satisfy input conditions
      * @param conditions Must be fed as (operator)(number) separated by commas. Valid operators are <, <=, >, >=, !=, and =
      */
+    @SuppressWarnings("unused")
     public void keep(String conditions) {
         ArrayList<Double> output = new ArrayList<>();
         for (double i : rolls) {
