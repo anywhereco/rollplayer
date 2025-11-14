@@ -312,6 +312,12 @@ public class Parser {
                     intLength++;
                 }
                 substringIteration = input.substring(stringIterator, stringIterator+intLength);
+                if (substringIteration.matches("(.*\\.){2}.*")) {  //(any).(any).(any) regex
+                    outputList.clear();
+                    outputList.add("ERR");
+                    outputList.add("More than one decimal point detected " + substringIteration);
+                    return outputList;
+                }
                 outputList.add("" + Double.parseDouble(substringIteration));
 
                 stringIterator += intLength;
