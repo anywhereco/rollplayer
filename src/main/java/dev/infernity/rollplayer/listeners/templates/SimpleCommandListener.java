@@ -6,6 +6,7 @@ import net.dv8tion.jda.api.components.container.ContainerChildComponent;
 import net.dv8tion.jda.api.components.separator.Separator;
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay;
 import net.dv8tion.jda.api.events.GenericEvent;
+import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.EventListener;
@@ -58,7 +59,21 @@ public abstract class SimpleCommandListener implements EventListener, CommandDat
         return createContainer(TextDisplay.ofFormat("### %s /%s", commandEmoji, commandName), list);
     }
 
+    @SuppressWarnings("unused")
+    public Container createContainerSubcommand(String subcommand, List<ContainerChildComponent> list){
+        return createContainer(TextDisplay.ofFormat("### %s /%s %s", commandEmoji, commandName, subcommand), list);
+    }
+
+    public Container createContainerSubcommand(String subcommand, ContainerChildComponent... components){
+        List<ContainerChildComponent> list = new java.util.ArrayList<>(Arrays.stream(components).toList());
+        return createContainer(TextDisplay.ofFormat("### %s /%s %s", commandEmoji, commandName, subcommand), list);
+    }
+
     public abstract void onCommandRan(@NotNull SlashCommandInteractionEvent event);
+
+    public void onAutocomplete(@NotNull CommandAutoCompleteInteractionEvent event) {
+        throw new RuntimeException("Autocomplete was triggered, but no override was given to onAutocomplete!");
+    }
 
     public void onButtonPress(@NotNull ButtonInteractionEvent event) {
         throw new RuntimeException("A button was pressed with this listener, but no override was given to onButtonPress! Event ID: " + event.getComponentId());
@@ -75,14 +90,25 @@ public abstract class SimpleCommandListener implements EventListener, CommandDat
 
     @Override
     public void onEvent(@NotNull GenericEvent genericEvent) {
-        if (genericEvent instanceof SlashCommandInteractionEvent event) {
-            if (event.getName().equals(commandName)) {
-                onCommandRan(event);
+        switch (genericEvent) {
+            case SlashCommandInteractionEvent event -> {
+                if (event.getName().equals(commandName)) {
+                    onCommandRan(event);
+                }
             }
-        } else if (genericEvent instanceof ButtonInteractionEvent event) {
-            String[] id = event.getComponentId().split(":");
-            if (Objects.equals(id[0], commandName)) {
-                onButtonPress(event);
+            case ButtonInteractionEvent event -> {
+                String[] id = event.getComponentId().split(":");
+                if (Objects.equals(id[0], commandName)) {
+                    onButtonPress(event);
+                }
+            }
+            case CommandAutoCompleteInteractionEvent event -> {
+                String id = event.getName();
+                if (Objects.equals(id, commandName)) {
+                    onAutocomplete(event);
+                }
+            }
+            default -> {
             }
         }
     }
