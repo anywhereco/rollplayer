@@ -5,6 +5,9 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import dev.infernity.rollplayer.listeners.templates.SimpleCommandListener;
 import dev.infernity.rollplayer.util.RandomExt;
+import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.dv8tion.jda.api.components.mediagallery.MediaGallery;
 import net.dv8tion.jda.api.components.mediagallery.MediaGalleryItem;
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay;
@@ -33,15 +36,14 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
- public class RandomCommand extends SimpleCommandListener {
+public class RandomCommand extends SimpleCommandListener {
+    private static class String2IntHashMap extends Object2IntOpenHashMap<String>{
 
-    private static class CountryNameRecord extends ConcurrentHashMap<String, GenderNameRecord> {}
-    private static class GenderNameRecord extends ConcurrentHashMap<String, ConcurrentHashMap<String, Number>> {}
+    }
 
     public RandomCommand() {
         super("random", "Get a random object.", "\uD83C\uDFB2");
@@ -50,16 +52,16 @@ import java.util.stream.Stream;
 
     final File namesFile = new File("data/random/names.json");
     final Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    private ConcurrentHashMap<String, CountryNameRecord> names = new ConcurrentHashMap<>();
+    private HashMap<String, HashMap<String, HashMap<String, String2IntHashMap>>> names = new HashMap<>();
 
 
     public void loadFiles() {
         try (FileReader reader = new FileReader(namesFile)) {
-            Type type = new TypeToken<ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, Integer>>>>>(){}.getType();
+            var type = new TypeToken<HashMap<String, HashMap<String, HashMap<String, String2IntHashMap>>>>(){};
             names = gson.fromJson(reader, type);
         } catch (IOException e) {
             // You forgot the file idot
-            names = new ConcurrentHashMap<>();
+            names = new HashMap<>();
         }
     }
 
@@ -146,16 +148,16 @@ import java.util.stream.Stream;
                    List<String> countries = new ArrayList<>(names.keySet());
                    country = countries.get(random.nextInt(countries.size()));
                }
-               ConcurrentHashMap<String, GenderNameRecord> countryNames = names.get(country);
+               var countryNames = names.get(country);
                if (gender.isEmpty()) {
                    List<String> genders = new ArrayList<>(countryNames.keySet());
                    gender = genders.get(random.nextInt(genders.size()));
                }
-               ConcurrentHashMap<String, ConcurrentHashMap<String, Number>> genderNames = countryNames.get(gender);
+               var genderNames = countryNames.get(gender);
                var firstNames = genderNames.get("first").keySet().stream().toList();
-               var firstNameWeights = genderNames.get("first").values().stream().toList();
+               var firstNameWeights = genderNames.get("first").values().intStream().boxed().toList();
                var lastNames = genderNames.get("last").keySet().stream().toList();
-               var lastNameWeights = genderNames.get("last").values().stream().toList();
+               var lastNameWeights = genderNames.get("last").values().intStream().boxed().toList();
                String name = "";
                switch (form) {
                    case "first" ->

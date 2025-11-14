@@ -2,7 +2,7 @@ package dev.infernity.rollplayer.util;
 import java.util.List;
 
 public class RandomExt {
-    public static <T> T weighted_choice(List<T> list, List<Number> weights) {
+    public static <T> T weighted_choice(List<T> list, List<? extends Number> weights) {
         double totalWeight = 0.0;
         for (int i = 0; i<list.size(); i++) {
             totalWeight += weights.get(i).doubleValue();
