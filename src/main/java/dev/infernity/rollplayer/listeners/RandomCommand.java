@@ -27,10 +27,7 @@ import org.jetbrains.annotations.NotNull;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -48,6 +45,7 @@ public class RandomCommand extends SimpleCommandListener {
     }
 
     final File namesFile = new File("data/random/names.json");
+    final File usernamesFile = new File("data/random/usernames.txt");
     final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private HashMap<String, HashMap<String, HashMap<String, String2IntHashMap>>> names = new HashMap<>();
 
@@ -81,7 +79,8 @@ public class RandomCommand extends SimpleCommandListener {
                                                         .addChoice("Male","male")
                                                         .addChoice("Female","female")
                                         )
-                                        .addOption(OptionType.STRING, "origin", "Country of origin", false, true)
+                                        .addOption(OptionType.STRING, "origin", "Country of origin", false, true),
+                                new SubcommandData("username", "Generate a random username.")
                         )
                         .setIntegrationTypes(IntegrationType.ALL)
                         .setContexts(InteractionContextType.ALL)
@@ -138,6 +137,12 @@ public class RandomCommand extends SimpleCommandListener {
                event.replyComponents(container).useComponentsV2().queue();
            }
            case "name" -> {
+               if (names.isEmpty()) {
+                   event.replyComponents(createContainer(
+                           TextDisplay.of("**Rollplayer has encountered a problem:**"),
+                           TextDisplay.of("names.json not found")
+                   )).useComponentsV2().queue();
+               }
                String country = event.getOption("origin", "", OptionMapping::getAsString);
                String gender = event.getOption("gender", "", OptionMapping::getAsString);
                String form = event.getOption("form", "", OptionMapping::getAsString);
@@ -173,6 +178,57 @@ public class RandomCommand extends SimpleCommandListener {
                );
 
                event.replyComponents(container).useComponentsV2().queue();
+           }
+           case "username" -> {
+               int stinginess = 4; //mathematically perfect ver. is 1, no repeats ver. is inf
+               try (RandomAccessFile reader = new RandomAccessFile(usernamesFile, "r")) {
+                   long size = usernamesFile.length();
+                   while (true) {
+                       try {
+                           long position = random.nextLong(size);
+                           reader.seek(position);
+                           int next_char = 0;
+                           while (next_char != '\n') { //find next line
+                               next_char = reader.read();
+                               if (next_char == -1) {
+                                   throw new EOFException();
+                               }
+                           }
+                           ArrayList<Integer> usernameCharacters = new ArrayList<>();
+                           next_char = 0;
+                           while (next_char != '\n' && next_char != '\r') { //read this line up to next line break
+                               next_char = reader.read();
+                               if (next_char == -1) {
+                                   break;
+                               }
+                               if (next_char != '\n' && next_char != '\r') {
+                                   usernameCharacters.addLast(next_char);
+                               }
+                           }
+                           int line_length = usernameCharacters.size();
+                           if (random.nextFloat() < (float) Math.min(stinginess, line_length) / line_length) {
+                               continue;
+                           }
+                           int[] usernameCharactersArray = new int[line_length];
+                           for (int idx = 0; idx < usernameCharacters.size(); idx++) {
+                               usernameCharactersArray[idx] = usernameCharacters.get(idx);
+                           }
+                           String username = new String(usernameCharactersArray, 0, usernameCharactersArray.length);
+                           var container = createContainerSubcommand("username",
+                                   TextDisplay.of(username)
+                           );
+                           event.replyComponents(container).useComponentsV2().queue();
+                           break;
+                       } catch (EOFException _) {
+                       }
+                   }
+               } catch (IOException e) {
+                   // You forgot the file
+                   event.replyComponents(createContainer(
+                           TextDisplay.of("**Rollplayer has encountered a problem:**"),
+                           TextDisplay.of("usernames.txt not found")
+                   )).useComponentsV2().queue();
+               }
            }
            case null -> throw new IllegalStateException("How did you get a null value :cry:");
            default -> throw new IllegalStateException("Unexpected value: " + event.getSubcommandName());
