@@ -74,11 +74,11 @@ public class Roll extends SimpleCommandListener {
             List<ContainerChildComponent> output = new ArrayList<>();
 
             expressions = Parser.removeWhitespace(input);
-            if (expressions.getFirst().equals("ERR") || expressions.size() > 5) {
+            if (expressions.getFirst().equals("ERR") || expressions.size() > 10) {
                 String errorString;
 
                 if (expressions.getFirst().equals("ERR")) errorString = expressions.get(1);
-                else errorString = "Rollplayer cannot roll more than 5 expressions at once";
+                else errorString = "Rollplayer cannot roll more than 10 expressions at once";
 
                 event.replyComponents(createContainer(
                         TextDisplay.of("**Rollplayer has encountered a problem:**"),
