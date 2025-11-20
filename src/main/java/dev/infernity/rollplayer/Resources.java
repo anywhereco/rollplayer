@@ -189,6 +189,9 @@ public class Resources {
                 trace += "...";
             }
             msg = e.getMessage();
+            if (msg == null) {
+                msg = "<no message>";
+            }
             name = e.getClass().getName();
         } else {
             trace = "<no trace>";
@@ -196,7 +199,7 @@ public class Resources {
             name = "error";
         }
         ArrayList<ContainerChildComponent> els = new ArrayList<>();
-        els.add(TextDisplay.ofFormat("## A(n) %s occured!", name));
+        els.add(TextDisplay.ofFormat("## A(n) %s occurred!", name));
         els.add(TextDisplay.of(msg));
         if (Objects.nonNull(extras)) {
             els.addAll(extras);
