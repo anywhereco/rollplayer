@@ -7,7 +7,6 @@ import net.dv8tion.jda.api.components.textdisplay.TextDisplay;
 import net.dv8tion.jda.api.events.GenericEvent;
 import net.dv8tion.jda.api.hooks.EventListener;
 import net.dv8tion.jda.api.hooks.InterfacedEventManager;
-import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback;
 import net.dv8tion.jda.api.interactions.commands.CommandInteraction;
 import net.dv8tion.jda.internal.utils.JDALogger;
 import org.jetbrains.annotations.NotNull;
@@ -56,13 +55,16 @@ public class RollplayerEventManager extends InterfacedEventManager {
                         case MESSAGE -> "Message action";
                     };
                     components.add(TextDisplay.ofFormat("%s command: `%s`", type, ci.getCommandString()));
+                    var err = Resources.getInstance().tryLogException(throwable, components);
+                    var msg = throwable.getMessage();
+                    if (msg == null) {
+                        msg = "Unfortunately, we do not know what the error is. We're working to fix this!";
+                    }
+                    if (!ci.isAcknowledged()) {
+                        ci.replyComponents(ErrorTemplate.of("An unexpected error occurred in running `" + ci.getCommandString() + "`",
+                                msg + "\n\n-# If this issue is unexpected, please contact the developers in [the support server](https://discord.gg/TT3vyT3tAD) and give them the following error code: " + err)).useComponentsV2().setEphemeral(true).queue();
+                    }
                 }
-                var err = Resources.getInstance().tryLogException(throwable, components);
-                if (event instanceof IReplyCallback reply && !reply.isAcknowledged()) {
-                    reply.replyComponents(ErrorTemplate.of("An unexpected error occured in running this",
-                            throwable.getMessage() + "\n\nIf this issue is unexpected, please contact the developers in [the support server](https://discord.gg/TT3vyT3tAD) and give them the following error code: " + err)).useComponentsV2().setEphemeral(true).queue();
-                }
-
             }
         }
     }
