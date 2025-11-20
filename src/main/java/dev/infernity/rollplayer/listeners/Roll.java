@@ -1,6 +1,7 @@
 package dev.infernity.rollplayer.listeners;
 
 import dev.infernity.rollplayer.Resources;
+import dev.infernity.rollplayer.components.templates.ErrorTemplate;
 import dev.infernity.rollplayer.listeners.templates.SimpleCommandListener;
 import dev.infernity.rollplayer.rollplayerlib3.Parser;
 import net.dv8tion.jda.api.components.container.Container;
@@ -17,7 +18,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class Roll extends SimpleCommandListener {
@@ -82,19 +82,13 @@ public class Roll extends SimpleCommandListener {
                 if (expressions.getFirst().equals("ERR")) errorString = expressions.get(1);
                 else errorString = "Rollplayer cannot roll more than 10 expressions at once";
 
-                event.replyComponents(createContainer(
-                        TextDisplay.of("**Rollplayer has encountered a problem:**"),
-                        TextDisplay.ofFormat("%s", errorString)
-                )).useComponentsV2().queue();
+                event.replyComponents(ErrorTemplate.of(errorString)).useComponentsV2().queue();
                 return;
             }
 
             evaluations = Parser.evaluate(input);
             if (evaluations.getFirst().equals("ERR")) {
-                event.replyComponents(createContainer(
-                        TextDisplay.of("**Rollplayer has encountered a problem:**"),
-                        TextDisplay.of(evaluations.get(1))
-                )).useComponentsV2().queue();
+                event.replyComponents(ErrorTemplate.of(evaluations.get(1))).useComponentsV2().queue();
                 return;
             }
 
@@ -151,10 +145,7 @@ public class Roll extends SimpleCommandListener {
 
             IO.println(valueMax + " min " + valueMin);
             if (Double.isNaN(valueMin) || Double.isNaN(valueMax)) {
-                event.replyComponents(createContainer(
-                        TextDisplay.of("**Rollplayer has encountered a problem:**"),
-                        TextDisplay.of("Minmax calculation step failed")
-                )).useComponentsV2().queue();
+                event.replyComponents(ErrorTemplate.of("Minmax calculation step failed")).useComponentsV2().queue();
                 return;
             }
 
@@ -194,7 +185,7 @@ public class Roll extends SimpleCommandListener {
              event.replyComponents(createContainer(
                     TextDisplay.of("**Rollplayer has run into an issue:**"),
                     TextDisplay.ofFormat("%s", e.toString()),
-                    TextDisplay.ofFormat("\n-# If this issue is unexpected, please contact the developers in [the support server](https://discord.gg/TT3vyT3tAD) and give them the following error code: %s", errcode)
+                    TextDisplay.ofFormat("\n-# This issue is unexpected. If you wish to track the issue, join our [support server](https://discord.gg/TT3vyT3tAD) and give the developers the following error code: %s", errcode)
             )).useComponentsV2().queue();
         }
     }
