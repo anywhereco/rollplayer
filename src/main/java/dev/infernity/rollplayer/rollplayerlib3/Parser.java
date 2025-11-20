@@ -93,14 +93,9 @@ public class Parser {
      * @return Double sum of expression min/max results
      */
     public static double evaluateMinMax(ArrayList<String> expressions, String minmax) {
-        ArrayList<String> toEvaluate = new ArrayList<>();
-        for(String exp : expressions) {
-            if(exp.contains("{")) continue; //skip everything with a condition
-            toEvaluate.add(exp);
-        }
-
         double sum = 0;
-        for(String exp : toEvaluate) {
+
+        for(String exp : expressions) {
             double result = expressionMinMax(exp, minmax);
             if (Double.isNaN(result)) return result;
             sum += result;

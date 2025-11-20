@@ -3,6 +3,7 @@ package dev.infernity.rollplayer.rollplayerlib3;
 import java.util.ArrayList;
 import java.util.function.DoubleBinaryOperator;
 
+@FunctionalInterface
 interface Node{
     enum BinaryOp implements DoubleBinaryOperator {
         PLUS     ("+", Double::sum),
@@ -30,6 +31,13 @@ interface Node{
     double evaluate();
 }
 
+/**
+ * An AST (Abstract Syntax Tree) parser for math processing in Rollplayer.
+ * <p>Construct it with an ArrayList of String tokens, sanitized in the way that Parser.stringTokenizer() outputs. This will generate the tree.
+ * <p>Once the object is constructed, the evaluate() method will evaluate the math expression and return it as a double. If the tree encountered an error while parsing, this will return 0.
+ * <p>If the constructor encounters an error while parsing, isError() will return true and its sister method getError() will output the error String.
+ * This should be caught before you try to evaluate the AST unless you are absolutely sure your input will work.
+ */
 public class MathSolver extends Expression {
     Node rootNode;
     String errorCode;

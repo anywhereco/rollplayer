@@ -1,9 +1,10 @@
 package dev.infernity.rollplayer.rollplayerlib3;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Random;
+
+import static dev.infernity.rollplayer.rollplayerlib3.Expression.isNumber;
 
 public class Expression {
     ArrayList<String> tokenStream;
@@ -44,7 +45,7 @@ public class Expression {
     /**
      * Standard conditional tester for modularity
      * @param testValue Value to be tested, takes double or int
-     * @param conditions Must be fed as (operator)(number) separated by commas. Valid operators are <, <=, >, >=, !=, and =
+     * @param conditions Must be fed as (operator)(number) separated by commas. Valid operators are <, <=, >, >=, !=, =, x:y
      * @return String Boolean result of test against conditions
      * <p> Errors are returned prefaced by "ERR "
      */
@@ -82,8 +83,8 @@ public class Expression {
                             return "true";
                         } else continue;
                     } else {
+                        if(!isNumber(cond.substring(1))) return "ERR Condition < succeeded by invalid number";
                         conditionValue = Double.parseDouble(cond.substring(1));
-                        if(!isNumber(cond.substring(2))) return "ERR Condition < succeeded by invalid number";
                         if(testValue > conditionValue) {
                             return "true";
                         } else continue;
@@ -99,8 +100,8 @@ public class Expression {
                             return "true";
                         } else continue;
                     } else {
+                        if(!isNumber(cond.substring(1))) return "ERR Condition > succeeded by invalid number";
                         conditionValue = Double.parseDouble(cond.substring(1));
-                        if(!isNumber(cond.substring(2))) return "ERR Condition > succeeded by invalid number";
                         if(testValue < conditionValue) {
                             return "true";
                         } else continue;
@@ -189,8 +190,9 @@ class DiceRoller extends Expression{
                 rollMin = rollMax;
                 rollMax = (int)Double.parseDouble(consume());
             }
-            if (minmax.isEmpty()) rolls = new Rolls(rollCount, rollMin, rollMax);
-            else rolls = new Rolls(rollCount, rollMin, rollMax, minmax);
+            if (minmax.equals("max")) rolls = new MaxRolls(rollCount, rollMin, rollMax);
+            else if (minmax.equals("min")) rolls = new MinRolls(rollCount, rollMin, rollMax);
+            else rolls = new Rolls(rollCount, rollMin, rollMax);
         }
 
         // -1 in condition is needed to account for EOF token at the end
@@ -306,36 +308,33 @@ class DiceRoller extends Expression{
 }
 
 class Rolls{
-    private double[] rolls;
-    private final int minRoll;
-    private final int maxRoll;
-    private final String minmax;
-    private final static Random rng = new Random();
-    private String errorCode;
+    double[] rolls;
+    final int minRoll;
+    final int maxRoll;
+    final static Random rng = new Random();
+    String errorCode;
 
     Rolls(String error) {
         this.rolls = new double[]{0};
         this.minRoll = 0;
         this.maxRoll = 0;
-        this.minmax = "";
         this.errorCode = error;
     }
 
-    Rolls(double[] rolls, int min, int max, String minmax) {
+    Rolls(double[] rolls, int min, int max) {
         this.rolls = rolls;
         this.minRoll = min;
         this.maxRoll = max;
-        this.minmax = minmax;
         this.errorCode = "";
     }
 
     @SuppressWarnings("unused")
     Rolls(double[] rolls, int die) {
-        this(rolls, 1, die, "");
+        this(rolls, 1, die);
     }
 
     Rolls(int rollCount, int min, int max) {
-        this(new double[rollCount], min, max, "");
+        this(new double[rollCount], min, max);
         if(rollCount > 100) {
             errorCode = "Rollplayer will not roll more than 100 dice at once";
             return;
@@ -348,17 +347,6 @@ class Rolls{
     @SuppressWarnings("unused")
     Rolls(int rollCount, int die) {
         this(rollCount, 1, die);
-    }
-
-    /** @param minmax Should only ever be given "min" or "max" */
-    Rolls(int rollCount, int min, int max, String minmax) {
-        double[] rolls = new double[rollCount];
-        this(rolls, min, max, minmax);
-        switch (minmax) {
-            case "min" -> Arrays.fill(rolls, min);
-            case "max" -> Arrays.fill(rolls, max);
-            default -> errorCode = "Improper minmax rolls call: " + minmax;
-        }
     }
 
     public boolean isError() { return !errorCode.isEmpty();}
@@ -577,8 +565,7 @@ class Rolls{
     }
 
     public void explode(int maxExplosions) {
-        if (!minmax.equals("min") && !minmax.equals("max"))
-            explode("=" + maxRoll, maxExplosions);
+        explode("=" + maxRoll, maxExplosions);
     }
 
     public void imod(ArrayList<String> conditions, ArrayList<String> mathTokens) {
@@ -615,5 +602,392 @@ class Rolls{
                 }
             }
         }
+    }
+}
+
+class MinRolls extends Rolls{
+    double lowerBound;
+    ArrayList<double[]> boundRanges;
+
+    MinRolls(double[] rolls, int min, int max) {
+        super(rolls, min, max);
+        boundRanges = new ArrayList<>();
+    }
+
+    MinRolls(int rollCount, int min, int max) {
+        this(new double[rollCount], min, max);
+        if(rollCount > 100) {
+            errorCode = "Rollplayer will not roll more than 100 dice at once";
+            return;
+        }
+        for (int i = 0; i < rollCount; i++) {
+            rolls[i] = min;
+        }
+        lowerBound = min;
+    }
+
+    /**
+     * Takes in a lower bound from any conditional and modifies rolls to satisfy it
+     * @param lowerBound Lower bound for rolls, EXCLUSIVE on bound
+     */
+    private void boundDown(double lowerBound) {
+        if (lowerBound < this.lowerBound) return;
+        else this.lowerBound = lowerBound;
+
+        for(int i = 0; i < rolls.length; i++)
+            if (rolls[i] < this.lowerBound)
+                rolls[i] = Math.ceil(this.lowerBound); // this has edge cases with like, imod then drop. i don't care
+    }
+
+    /**
+     * Adds a range bound condition to the rolls and calls boundDown if needed
+     * @param bounds Lower bound inclusive and upper bound exclusive, in that order
+     */
+    private void boundRange(double[] bounds) {
+        // if the inputted range is greater than the upperbound or less than the lowerbound then i dont care
+        if (bounds[0] > maxRoll) return;
+        if (bounds[1] < lowerBound) return;
+
+        // insert the bound into the list, sorted by lowerbound
+        // this is faster than just adding and then sorting but i dont care
+        if (!boundRanges.isEmpty()) {
+            for (int i = 0; i < boundRanges.size(); i++) {
+                if (bounds[1] < boundRanges.get(i)[1]) {
+                    boundRanges.add(i, bounds);
+                    break;
+                }
+                if (i == boundRanges.size() - 1) {
+                    boundRanges.add(bounds);
+                    break;
+                }
+            }
+        } else boundRanges.add(bounds);
+
+        ArrayList<double[]> mergedOutput = new ArrayList<>();
+        mergedOutput.add(boundRanges.getFirst()); // initial lowest range
+        // now merge the bounds
+        for (int i = 1; i < boundRanges.size(); i++) {
+            double[] lastRange = mergedOutput.getLast();
+            double[] nextRange = boundRanges.get(i);
+
+            // if bounds overlap, MERGE!
+            if (nextRange[0] <= lastRange[1])
+                lastRange[1] = Math.max(lastRange[1], nextRange[1]);
+            else
+                mergedOutput.add(nextRange);
+        }
+
+        double newBound = lowerBound;
+        // now iterate forwards over the ranges to see if they overlap with lowerBound
+        while (mergedOutput.getFirst()[0] < newBound)
+            if (mergedOutput.getFirst()[1] > newBound) {
+                newBound = mergedOutput.getFirst()[1];
+                mergedOutput.removeFirst(); // 3:5 bound 4
+            } else {
+                mergedOutput.removeFirst(); // 3:5 bound 6
+            }
+
+        // now redo the rolls
+        if (newBound > lowerBound) boundDown(newBound);
+    }
+
+    private void boundConditions(String inputConditions) {
+        String[] conditions = inputConditions.split(",");
+
+        for (String cond : conditions) {
+            if (isNumber(cond)) cond = "=" + cond; // {3,4,5} is {=3,=4,=5}
+
+            // ranges like 3:5
+            if (cond.matches("\\d+\\.?\\d+:\\d+\\.?\\d+")) {
+                String[] bounds = cond.split(":");
+
+                if (Double.parseDouble(bounds[0]) == Double.parseDouble(bounds[1])) cond = "=" + bounds[0]; // 3:3
+                else if (Double.parseDouble(bounds[0]) > Double.parseDouble(bounds[1])) // 5:3
+                    boundRange(new double[]{Double.parseDouble(bounds[1]), Double.parseDouble(bounds[0]) + 1});
+                else
+                    boundRange(new double[]{Double.parseDouble(bounds[0]), Double.parseDouble(bounds[1]) + 1}); // 3:5
+            }
+
+            // Valid operators are <, <=, >, >=, !=, =
+            switch (cond.charAt(0)) {
+                case '<':
+                    if (cond.charAt(1) == '=')
+                        boundDown(Double.parseDouble(cond.substring(2)) + 1);
+                    else
+                        boundDown(Double.parseDouble(cond.substring(1)));
+                    continue;
+
+                case '>':
+                    if (cond.charAt(1) == '=')
+                        boundRange(new double[]{Double.parseDouble(cond.substring(2)) - 1, maxRoll + 1});
+                    else
+                        boundRange(new double[]{Double.parseDouble(cond.substring(1)), maxRoll + 1});
+                    continue;
+
+                case '!':
+                    boundRange(new double[]{Double.parseDouble(cond.substring(2)), maxRoll + 1});
+                    boundDown(Double.parseDouble(cond.substring(2)));
+                    continue;
+
+                case '=':
+                    boundRange(new double[]{Double.parseDouble(cond.substring(1)), Double.parseDouble(cond.substring(1)) + 1});
+            }
+        }
+    }
+
+    @Override
+    public void reroll(String conditions, int maxRepeats) {
+        if (rolls.length == 0) return;
+        boundConditions(conditions);
+    }
+
+    @Override
+    public void drop(String inputConditions) { // this has to have its own behaviour because of course it does
+        if (rolls.length == 0) return;
+        String[] conditions = inputConditions.split(",");
+
+        for (String cond : conditions) {
+            if (isNumber(cond)) cond = "=" + cond; // {3,4,5} is {=3,=4,=5}
+
+            // ranges like 3:5
+            if (cond.matches("\\d+\\.?\\d+:\\d+\\.?\\d+")) {
+                String[] bounds = cond.split(":");
+
+                if (Double.parseDouble(bounds[0]) == Double.parseDouble(bounds[1])) cond = "=" + bounds[0]; // 3:3
+                else if (Double.parseDouble(bounds[0]) > Double.parseDouble(bounds[1])) { // 5:3
+                    if (Double.parseDouble(bounds[1]) < lowerBound && Double.parseDouble(bounds[0]) > lowerBound) {
+                        rolls = new double[0];
+                        return;
+                    }
+                } else // 3:5
+                    if (Double.parseDouble(bounds[0]) < lowerBound && Double.parseDouble(bounds[1]) > lowerBound) {
+                        rolls = new double[0];
+                        return;
+                    }
+            }
+
+            // Valid operators are <, <=, >, >=, !=, =
+            switch (cond.charAt(0)) {
+                case '<':
+                    if (cond.charAt(1) == '=') {
+                        if (Double.parseDouble(cond.substring(2)) >= lowerBound) {
+                            rolls = new double[0];
+                            return;
+                        }
+                    } else
+                        if (Double.parseDouble(cond.substring(1)) > lowerBound) {
+                            rolls = new double[0];
+                            return;
+                        }
+                    continue;
+
+                case '>':
+                    if (cond.charAt(1) == '=') {
+                        if (Double.parseDouble(cond.substring(2)) <= lowerBound) {
+                            rolls = new double[0];
+                            return;
+                        }
+                    } else
+                        if (Double.parseDouble(cond.substring(1)) < lowerBound) {
+                            rolls = new double[0];
+                            return;
+                        }
+                    continue;
+
+                case '!':
+                    if (rolls.length > 0 && Double.parseDouble(cond.substring(2)) != rolls[0]) {
+                        rolls = new double[0];
+                        return;
+                    }
+                    continue;
+
+                case '=':
+                    if (rolls.length > 0 && Double.parseDouble(cond.substring(1)) == rolls[0]){
+                        rolls = new double[0];
+                        return;
+                    }
+            }
+        }
+    }
+
+    @Override
+    public void explode(int maxExplosions) {
+        // this should not do anything
+    }
+
+    @Override
+    public void explode(String conditions, int maxExplosions) {
+        // this should not do anything
+    }
+
+    // these need to be overriden because of drop failsafes
+    @Override
+    public void keepHigher(int high) {
+        if (rolls.length == 0) return;
+        super.keepHigher(high);
+    }
+
+    @Override
+    public void keepLower(int low) {
+        if (rolls.length == 0) return;
+        super.keepLower(low);
+    }
+
+    @Override
+    public void keepHighLow(int high, int low) {
+        if (rolls.length == 0) return;
+        super.keepHighLow(high, low);
+    }
+}
+
+class MaxRolls extends Rolls{
+    double upperBound;
+    ArrayList<double[]> boundRanges;
+
+    MaxRolls(double[] rolls, int min, int max) {
+        super(rolls, min, max);
+        boundRanges = new ArrayList<>();
+    }
+
+    MaxRolls(int rollCount, int min, int max) {
+        this(new double[rollCount], min, max);
+        if(rollCount > 100) {
+            errorCode = "Rollplayer will not roll more than 100 dice at once";
+            return;
+        }
+        for (int i = 0; i < rollCount; i++) {
+            rolls[i] = max;
+        }
+        upperBound = max;
+    }
+
+    /**
+     * Takes in an upper bound from any conditional and modifies rolls to satisfy it
+     * @param upperBound Upper bound for rolls, EXCLUSIVE on bound
+     */
+    private void boundUp(double upperBound) {
+        if (upperBound > this.upperBound) return;
+        else this.upperBound = upperBound;
+
+        for(int i = 0; i < rolls.length; i++)
+            if (rolls[i] > this.upperBound)
+                rolls[i] = (int)this.upperBound; // this has edge cases with like, imod then drop. i don't care
+    }
+
+    /**
+     * Adds a range bound condition to the rolls and calls boundUp if needed
+     * @param bounds Lower bound exclusive and upper bound inclusive, in that order
+     */
+    private void boundRange(double[] bounds) {
+        // if the inputted range is greater than the upperbound or less than the lowerbound then i dont care
+        if (bounds[0] > upperBound) return;
+        if (bounds[1] < minRoll) return;
+
+        // insert the bound into the list, sorted by lowerbound
+        // this is faster than just adding and then sorting but i dont care
+        if (!boundRanges.isEmpty()) {
+            for (int i = 0; i < boundRanges.size(); i++) {
+                if (bounds[1] < boundRanges.get(i)[1]) {
+                    boundRanges.add(i, bounds);
+                    break;
+                }
+
+                if (i == boundRanges.size() - 1) {
+                    boundRanges.add(bounds);
+                    break;
+                }
+            }
+        } else boundRanges.add(bounds);
+
+        ArrayList<double[]> mergedOutput = new ArrayList<>();
+        mergedOutput.add(boundRanges.getFirst()); // initial lowest range
+        // now merge the bounds
+        for (int i = 1; i < boundRanges.size(); i++) {
+            double[] lastRange = mergedOutput.getLast();
+            double[] nextRange = boundRanges.get(i);
+
+            // if bounds overlap, MERGE!
+            if (nextRange[0] <= lastRange[1])
+                lastRange[1] = Math.max(lastRange[1], nextRange[1]);
+            else
+                mergedOutput.add(nextRange);
+        }
+
+        double newBound = upperBound;
+        // now iterate backwards over the ranges to see if they overlap with upperBound
+        while (mergedOutput.getLast()[1] > newBound)
+            if (mergedOutput.getLast()[0] < newBound) {
+                newBound = mergedOutput.getLast()[0];
+                mergedOutput.removeLast(); // 3:5 bound 4
+            } else {
+                mergedOutput.removeLast(); // 3:5 bound 2
+            }
+
+        // now redo the rolls
+        boundUp(newBound);
+    }
+
+    private void boundConditions(String inputConditions) {
+        String[] conditions = inputConditions.split(",");
+
+        for (String cond : conditions) {
+            if (isNumber(cond)) cond = "=" + cond; // {3,4,5} is {=3,=4,=5}
+
+            // ranges like 3:5
+            if (cond.matches("\\d+\\.?\\d+:\\d+\\.?\\d+")) {
+                String[] bounds = cond.split(":");
+
+                if (Double.parseDouble(bounds[0]) == Double.parseDouble(bounds[1])) cond = "=" + bounds[0]; // 3:3
+                else if (Double.parseDouble(bounds[0]) > Double.parseDouble(bounds[1])) // 5:3
+                    boundRange(new double[]{Double.parseDouble(bounds[1]) - 1, Double.parseDouble(bounds[0])});
+                else
+                    boundRange(new double[]{Double.parseDouble(bounds[0]) - 1, Double.parseDouble(bounds[1])}); // 3:5
+            }
+
+            // Valid operators are <, <=, >, >=, !=, =
+            switch (cond.charAt(0)) {
+                case '<':
+                    if (cond.charAt(1) == '=')
+                        boundRange(new double[]{minRoll - 1, Double.parseDouble(cond.substring(2))});
+                    else
+                        boundRange(new double[]{minRoll - 1, Double.parseDouble(cond.substring(1)) - 1});
+                    continue;
+
+                case '>':
+                    if (cond.charAt(1) == '=')
+                        boundUp(Double.parseDouble(cond.substring(2)) - 1);
+                    else
+                        boundUp(Double.parseDouble(cond.substring(1)));
+                    continue;
+
+                case '!':
+                    boundRange(new double[]{minRoll - 1, Double.parseDouble(cond.substring(2)) - 1});
+                    boundUp(Double.parseDouble(cond.substring(2)));
+                    continue;
+
+                case '=':
+                    boundRange(new double[]{Double.parseDouble(cond.substring(1)) - 1, Double.parseDouble(cond.substring(1))});
+            }
+        }
+    }
+
+    @Override
+    public void reroll(String conditions, int maxRepeats) {
+        boundConditions(conditions);
+    }
+
+    @Override
+    public void drop(String conditions) {
+        boundConditions(conditions);
+    }
+
+    @Override
+    public void explode(int maxExplosions) {
+        // this should not do anything
+    }
+
+    @Override
+    public void explode(String conditions, int maxExplosions) {
+        // this should not do anything
     }
 }
