@@ -61,10 +61,11 @@ public class RollplayerEventManager extends InterfacedEventManager {
                         msg = "Unfortunately, we do not know what the error is. We're working to fix this!";
                     }
                     if (!ci.isAcknowledged()) {
-                        ci.replyComponents(ErrorTemplate.of("An unexpected error occurred in running `" + ci.getCommandString() + "`",
+                        ci.replyComponents(ErrorTemplate.of("An unexpected error occurred in running this " + type.toLowerCase() + " command",
                                 msg + "\n\n-# If this issue is unexpected, please contact the developers in [the support server](https://discord.gg/TT3vyT3tAD) and give them the following error code: " + err)).useComponentsV2().setEphemeral(true).queue();
                     }
                 }
+                Resources.getInstance().getLogger().error("One of the EventListeners had an uncaught exception!", throwable);
             }
         }
     }
