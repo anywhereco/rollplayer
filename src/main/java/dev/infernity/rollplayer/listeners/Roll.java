@@ -82,13 +82,13 @@ public class Roll extends SimpleCommandListener {
                 if (expressions.getFirst().equals("ERR")) errorString = expressions.get(1);
                 else errorString = "Rollplayer cannot roll more than 10 expressions at once";
 
-                event.replyComponents(ErrorTemplate.of(errorString)).useComponentsV2().queue();
+                event.replyComponents(ErrorTemplate.of("Whitespace Removal error", errorString)).useComponentsV2().queue();
                 return;
             }
 
             evaluations = Parser.evaluate(input);
             if (evaluations.getFirst().equals("ERR")) {
-                event.replyComponents(ErrorTemplate.of(evaluations.get(1))).useComponentsV2().queue();
+                event.replyComponents(ErrorTemplate.of("Evaluation error", evaluations.get(1))).useComponentsV2().queue();
                 return;
             }
 
@@ -145,7 +145,7 @@ public class Roll extends SimpleCommandListener {
 
             IO.println(valueMax + " min " + valueMin);
             if (Double.isNaN(valueMin) || Double.isNaN(valueMax)) {
-                event.replyComponents(ErrorTemplate.of("Minmax calculation step failed")).useComponentsV2().queue();
+                event.replyComponents(ErrorTemplate.of("Minmax calculation step failed", "If you're seeing this, please contact [the support server](https://discord.gg/TT3vyT3tAD)")).useComponentsV2().queue();
                 return;
             }
 
