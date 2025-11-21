@@ -3,6 +3,7 @@
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import dev.infernity.rollplayer.components.templates.ErrorTemplate;
 import dev.infernity.rollplayer.listeners.templates.SimpleCommandListener;
 import dev.infernity.rollplayer.util.RandomExt;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
@@ -74,6 +75,7 @@ public class RandomCommand extends SimpleCommandListener {
                                                         .addChoice("Last name","last")
                                                         .addChoice("Full name","full")
                                         )
+                                        .addOption(OptionType.INTEGER, "count", "The amount of names to generate", false)
                                         .addOptions(
                                                 new OptionData(OptionType.STRING, "gender", "Gender associated with the name", false)
                                                         .addChoice("Male","male")
@@ -81,6 +83,7 @@ public class RandomCommand extends SimpleCommandListener {
                                         )
                                         .addOption(OptionType.STRING, "origin", "Country of origin", false, true),
                                 new SubcommandData("username", "Generate a random username.")
+                                        .addOption(OptionType.INTEGER, "count", "The amount of usernames to generate", false)
                         )
                         .setIntegrationTypes(IntegrationType.ALL)
                         .setContexts(InteractionContextType.ALL)
@@ -103,6 +106,15 @@ public class RandomCommand extends SimpleCommandListener {
 
     public void onCommandRan(@NotNull SlashCommandInteractionEvent event) {
        Random random = new Random();
+       int count = event.getOption("count", 1, OptionMapping::getAsInt);
+        if (count <= 0) {
+            event.replyComponents(ErrorTemplate.of("You cannot have a count of 0")).useComponentsV2().setEphemeral(true).queue();
+            return;
+        }
+        if (count > 20) {
+            event.replyComponents(ErrorTemplate.of("You cannot have a count of higher than 20")).useComponentsV2().setEphemeral(true).queue();
+            return;
+        }
        switch (event.getSubcommandName()) {
            case "color" -> {
                boolean nice = event.getOption("nice", true, OptionMapping::getAsBoolean);
@@ -160,20 +172,22 @@ public class RandomCommand extends SimpleCommandListener {
                var firstNameWeights = genderNames.get("first").values().intStream().boxed().toList();
                var lastNames = genderNames.get("last").keySet().stream().toList();
                var lastNameWeights = genderNames.get("last").values().intStream().boxed().toList();
-               String name = "";
-               switch (form) {
-                   case "first" ->
-                       name = RandomExt.weighted_choice(firstNames,firstNameWeights);
-                   case "last" ->
-                       name = RandomExt.weighted_choice(lastNames,lastNameWeights);
-                   case "full" -> {
-                       String firstName = RandomExt.weighted_choice(firstNames,firstNameWeights);
-                       String lastName = RandomExt.weighted_choice(lastNames,lastNameWeights);
-                       name = firstName + " " + lastName;
+               List<String> names = new ArrayList<>();
+               for (int i = 0; i < count; i++) {
+                   String name = "";
+                   switch (form) {
+                       case "first" -> name = RandomExt.weighted_choice(firstNames, firstNameWeights);
+                       case "last" -> name = RandomExt.weighted_choice(lastNames, lastNameWeights);
+                       case "full" -> {
+                           String firstName = RandomExt.weighted_choice(firstNames, firstNameWeights);
+                           String lastName = RandomExt.weighted_choice(lastNames, lastNameWeights);
+                           name = firstName + " " + lastName;
+                       }
                    }
+                   names.add(name);
                }
                var container = createContainerSubcommand("name",
-                       TextDisplay.of(name),
+                       TextDisplay.of(String.join("\n", names)),
                        TextDisplay.of(String.format("-# %s name from %s", gender, StringUtils.capitalize(country)))
                );
 
@@ -183,45 +197,49 @@ public class RandomCommand extends SimpleCommandListener {
                int stinginess = 4; //mathematically perfect ver. is 1, no repeats ver. is inf
                try (RandomAccessFile reader = new RandomAccessFile(usernamesFile, "r")) {
                    long size = usernamesFile.length();
-                   while (true) {
-                       try {
-                           long position = random.nextLong(size);
-                           reader.seek(position);
-                           int next_char = 0;
-                           while (next_char != '\n') { //find next line
-                               next_char = reader.read();
-                               if (next_char == -1) {
-                                   throw new EOFException();
+                   List<String> usernames = new ArrayList<>();
+                   for (int i = 0; i < count; i++) {
+                       while (true) {
+                           try {
+                               long position = random.nextLong(size);
+                               reader.seek(position);
+                               int next_char = 0;
+                               while (next_char != '\n') { //find next line
+                                   next_char = reader.read();
+                                   if (next_char == -1) {
+                                       throw new EOFException();
+                                   }
                                }
-                           }
-                           ArrayList<Integer> usernameCharacters = new ArrayList<>();
-                           next_char = 0;
-                           while (next_char != '\n' && next_char != '\r') { //read this line up to next line break
-                               next_char = reader.read();
-                               if (next_char == -1) {
-                                   break;
+                               ArrayList<Integer> usernameCharacters = new ArrayList<>();
+                               next_char = 0;
+                               while (next_char != '\n' && next_char != '\r') { //read this line up to next line break
+                                   next_char = reader.read();
+                                   if (next_char == -1) {
+                                       break;
+                                   }
+                                   if (next_char != '\n' && next_char != '\r') {
+                                       usernameCharacters.addLast(next_char);
+                                   }
                                }
-                               if (next_char != '\n' && next_char != '\r') {
-                                   usernameCharacters.addLast(next_char);
+                               int line_length = usernameCharacters.size();
+                               if (random.nextFloat() < (float) Math.min(stinginess, line_length) / line_length) {
+                                   continue;
                                }
+                               int[] usernameCharactersArray = new int[line_length];
+                               for (int idx = 0; idx < usernameCharacters.size(); idx++) {
+                                   usernameCharactersArray[idx] = usernameCharacters.get(idx);
+                               }
+                               String username = new String(usernameCharactersArray, 0, usernameCharactersArray.length);
+                               usernames.add(username);
+                               break;
+                           } catch (EOFException _) {
                            }
-                           int line_length = usernameCharacters.size();
-                           if (random.nextFloat() < (float) Math.min(stinginess, line_length) / line_length) {
-                               continue;
-                           }
-                           int[] usernameCharactersArray = new int[line_length];
-                           for (int idx = 0; idx < usernameCharacters.size(); idx++) {
-                               usernameCharactersArray[idx] = usernameCharacters.get(idx);
-                           }
-                           String username = new String(usernameCharactersArray, 0, usernameCharactersArray.length);
-                           var container = createContainerSubcommand("username",
-                                   TextDisplay.of(username)
-                           );
-                           event.replyComponents(container).useComponentsV2().queue();
-                           break;
-                       } catch (EOFException _) {
                        }
                    }
+                   var container = createContainerSubcommand("username",
+                           TextDisplay.of(String.join("\n", usernames))
+                   );
+                   event.replyComponents(container).useComponentsV2().queue();
                } catch (IOException e) {
                    // You forgot the file
                    event.replyComponents(createContainer(
