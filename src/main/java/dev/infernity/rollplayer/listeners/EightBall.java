@@ -37,7 +37,7 @@ public class EightBall extends SimpleCommandListener {
             "Very doubtful"};
 
     public EightBall() {
-        super("8ball", "8ball desc","\uD83C\uDFB1");
+        super("8ball", "Query the magic 8 ball for answers to your questions.","\uD83C\uDFB1");
     }
 
     @Override
