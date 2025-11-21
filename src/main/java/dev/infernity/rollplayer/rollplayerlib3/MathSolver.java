@@ -46,7 +46,8 @@ public class MathSolver extends Expression {
         super(tokens);
         rootNode = parseAdd(); // despite the confusing name this generates the entire tree
         if (rootNode instanceof ErrorNode) errorCode = ((ErrorNode) rootNode).getError();
-        if (!peek("EOF")) errorCode = "Reached end of math expression while solving: " + tokenStream.subList(pointer, tokenStream.size());
+        if (!peek("EOF")) errorCode = "Reached end of math expression while solving: " + tokenStream.subList(pointer, tokenStream.size())
+                + "\nThis can be caused by a variety of things. Check your math!";
     }
 
     public double evaluate() {
@@ -128,7 +129,7 @@ public class MathSolver extends Expression {
         else {
             consume("(");
             if (!errorReturn.isEmpty()) {
-                if (peek("EOF")) return new ErrorNode("Reached end of math expression while solving: " + tokenStream);
+                if (peek("EOF")) return new ErrorNode("Reached end of math expression while solving: " + tokenStream + "\nThe math expression is trying to look for a number but got nothing because it ends early");
                 else return new ErrorNode("Neither number nor parenthesis found as argument: " + peek() + " in " + tokenStream);
             }
             Node e = parseAdd();

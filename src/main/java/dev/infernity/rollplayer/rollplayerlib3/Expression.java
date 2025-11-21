@@ -125,7 +125,7 @@ public class Expression {
                     } else continue;
 
                 default:
-                    return "ERR Illegal condition: " + cond.charAt(0);
+                    return "ERR Illegal condition: " + cond.charAt(0) + "\nCheck that your input doesn't have typos";
             }
         }
         return "false";
@@ -156,7 +156,7 @@ class DiceRoller extends Expression{
         StringBuilder output = new StringBuilder();
         consume("\\{");
         if (!errorReturn.isEmpty()) return "ERR " + errorReturn;
-        if (peek("}")) return "ERR Empty condition in diceroll found";
+        if (peek("}")) return "ERR Empty condition in diceroll found\nYou forgot to put stuff between the {}";
         while(!peek("\\}") && !peek("EOF")){
             output.append(consume());
         }
@@ -184,7 +184,10 @@ class DiceRoller extends Expression{
                 if (!errorReturn.isEmpty()) return new Rolls(errorReturn);
             } else
                 return new Rolls("No roll detected in passed dice roll expression: " + tokenStream);
-            rollMax = (int)Double.parseDouble(consume());
+
+            if(isNumber(peek())) rollMax = (int)Double.parseDouble(consume());
+            else return new Rolls("Diceroll declaration is succeeded by non-number token\nThis means you probably have a typo in your input");
+
             if(peek(":")) { //d(num):(num)
                 consume();
                 rollMin = rollMax;
@@ -237,7 +240,7 @@ class DiceRoller extends Expression{
                         rerollCond = getConditions();
                         if (rerollCond.startsWith("ERR ")) return new Rolls(rerollCond.substring(4));
                     }
-                    else return new Rolls("Missing condition following reroll operator");
+                    else return new Rolls("Missing condition following reroll operator\nRerolls need a {} condition section!");
                     if(peek(":")) {
                         consume(":");
                         if (!errorReturn.isEmpty()) return new Rolls(errorReturn);
@@ -251,7 +254,7 @@ class DiceRoller extends Expression{
                         String dropConds = getConditions();
                         if (dropConds.startsWith("ERR ")) return new Rolls(dropConds.substring(4));
                         rolls.drop(dropConds);
-                    } else return new Rolls("Missing condition following drop operator");
+                    } else return new Rolls("Missing condition following drop operator\nDrops need a {} condition section!");
                     break;
 
                 case "!":
@@ -274,15 +277,15 @@ class DiceRoller extends Expression{
                 case "i":
                     ArrayList<String> conditions = new ArrayList<>();
                     ArrayList<String> mathTokens = new ArrayList<>();
-                    if(!isNumber(peek()) && !peek("\\*")) return new Rolls("No condition found following I-mod operator");
+                    if(!isNumber(peek()) && !peek("\\*")) return new Rolls("No condition found following I-mod operator\nI-mods need a roll selection section!");
                     conditions.add(consume());
                     while(peek(",")) {
                         consume();
                         if(peek("\\*") || isNumber(peek())) {
                             conditions.add(consume());
-                        } else return new Rolls("Unrecognized condition in imod: " + peek());
+                        } else return new Rolls("Unrecognized condition in imod: " + peek() +"\nThis is probably due to a typo in the input");
                     }
-                    if(!peek(":")) return new Rolls("No : found to declare math following I-mod conditions");
+                    if(!peek(":")) return new Rolls("No : found to declare math following I-mod conditions\nYou probably forgot to add a : somewhere");
                     while(peek(":")) {
                         consume();
                         if(peek("EOF")) return new Rolls("Empty math section following I-mod : declaration");
@@ -360,7 +363,7 @@ class Rolls{
         * min roll 0 + 50 = 50
         */
         if (maxRoll < minRoll) {
-            errorCode = "Roll upper bound is less than lower bound";
+            errorCode = "Roll upper bound is less than lower bound\nCheck the numbers after the letter \"d\"";
             return 1;
         }
         return rng.nextInt(maxRoll - minRoll + 1) + minRoll;
@@ -379,8 +382,7 @@ class Rolls{
 
     public void keepHigher(int high) {
         if(high > rolls.length || high < 1) {
-            errorCode = String.format("Cannot keep %d rolls of %d", high, rolls.length);
-            return;
+            return; // keeping more rolls than are in the list
         }
         ArrayList<Double> sortedRolls = new ArrayList<>();
         for (double d : rolls) sortedRolls.add(d);
@@ -402,8 +404,7 @@ class Rolls{
 
     public void keepLower(int low) {
         if(low > rolls.length || low < 1) {
-            errorCode = String.format("Cannot keep %d rolls of %d", low, rolls.length);
-            return;
+            return; // keeping more rolls than are in the list
         }
         ArrayList<Double> sortedRolls = new ArrayList<>();
         for (double d : rolls) sortedRolls.add(d);
@@ -425,8 +426,7 @@ class Rolls{
 
     public void keepHighLow(int high, int low) {
         if (high+low > rolls.length || high < -1 || low < -1) {
-            errorCode = String.format("Cannot keep %d higher and %d lower rolls of %d", high, low, rolls.length);
-            return;
+            return; // keeping more rolls than are in the list
         }
         ArrayList<Double> sortedRolls = new ArrayList<>();
         for (double d : rolls) sortedRolls.add(d);
@@ -818,25 +818,6 @@ class MinRolls extends Rolls{
     @Override
     public void explode(String conditions, int maxExplosions) {
         // this should not do anything
-    }
-
-    // these need to be overriden because of drop failsafes
-    @Override
-    public void keepHigher(int high) {
-        if (rolls.length == 0) return;
-        super.keepHigher(high);
-    }
-
-    @Override
-    public void keepLower(int low) {
-        if (rolls.length == 0) return;
-        super.keepLower(low);
-    }
-
-    @Override
-    public void keepHighLow(int high, int low) {
-        if (rolls.length == 0) return;
-        super.keepHighLow(high, low);
     }
 }
 

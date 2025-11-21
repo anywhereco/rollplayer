@@ -310,7 +310,8 @@ public class Parser {
                 if (substringIteration.matches("(.*\\.){2}.*")) {  //(any).(any).(any) regex
                     outputList.clear();
                     outputList.add("ERR");
-                    outputList.add("More than one decimal point detected " + substringIteration);
+                    outputList.add("More than one decimal point detected " + substringIteration +
+                            "\n Try checking the numbers you inputted");
                     return outputList;
                 }
                 outputList.add("" + Double.parseDouble(substringIteration));
@@ -322,7 +323,8 @@ public class Parser {
             {
                 outputList.clear();
                 outputList.add("ERR");
-                outputList.add("Unrecognized argument in token parser: " + substringIteration);
+                outputList.add("Unrecognized argument in token parser: " + substringIteration +
+                        "\n This probably means there's a typo in your input");
                 return outputList;
             }
         }
@@ -355,7 +357,8 @@ public class Parser {
             if (input.get(input.size()-2).equals("d")) {
                 output.clear();
                 output.add("ERR");
-                output.add("Diceroll declaration without following instructions detected");
+                output.add("Diceroll declaration without following instructions detected" +
+                        "\nThis means you forgot the face number for the die");
                 return output;
             }
             if (++rollCounter > 5) {
@@ -417,7 +420,8 @@ public class Parser {
                             if (input.get(expressionEnd).equals("EOF")) {
                                 output.clear();
                                 output.add("ERR");
-                                output.add("Reached end of expression while parsing open reroll condition");
+                                output.add("Reached end of expression while parsing open reroll condition" +
+                                        "\nThis means you forgot a } somewhere");
                                 return output;
                             }
                             expressionEnd++;
@@ -435,7 +439,8 @@ public class Parser {
                             if (input.get(expressionEnd).equals("EOF")) {
                                 output.clear();
                                 output.add("ERR");
-                                output.add("Reached end of expression while parsing open drop condition");
+                                output.add("Reached end of expression while parsing open drop condition" +
+                                        "\nThis means you forgot a } somewhere");
                                 return output;
                             }
                             expressionEnd++;
@@ -450,7 +455,8 @@ public class Parser {
                                 if (input.get(expressionEnd).equals("EOF")) {
                                     output.clear();
                                     output.add("ERR");
-                                    output.add("Reached end of expression while parsing open explode condition");
+                                    output.add("Reached end of expression while parsing open explode condition" +
+                                            "\n This means you forgot a } somewhere");
                                     return output;
                                 }
                                 expressionEnd++;
