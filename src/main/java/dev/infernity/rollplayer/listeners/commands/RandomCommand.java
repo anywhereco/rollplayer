@@ -1,4 +1,4 @@
- package dev.infernity.rollplayer.listeners;
+ package dev.infernity.rollplayer.listeners.commands;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

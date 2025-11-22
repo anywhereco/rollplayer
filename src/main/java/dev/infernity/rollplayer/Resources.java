@@ -1,7 +1,7 @@
 package dev.infernity.rollplayer;
 
 import dev.infernity.rollplayer.files.JarPather;
-import dev.infernity.rollplayer.listeners.PaginationManager;
+import dev.infernity.rollplayer.listeners.managers.PaginationManager;
 import dev.infernity.rollplayer.settings.SettingsManager;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.components.container.Container;

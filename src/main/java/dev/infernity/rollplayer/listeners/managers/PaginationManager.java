@@ -1,4 +1,4 @@
-package dev.infernity.rollplayer.listeners;
+package dev.infernity.rollplayer.listeners.managers;
 
 import dev.infernity.rollplayer.components.PaginationComponent;
 import dev.infernity.rollplayer.components.templates.ErrorTemplate;

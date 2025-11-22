@@ -1,4 +1,4 @@
-package dev.infernity.rollplayer.listeners;
+package dev.infernity.rollplayer.listeners.commands;
 
 import dev.infernity.rollplayer.Resources;
 import dev.infernity.rollplayer.components.PaginationComponent;

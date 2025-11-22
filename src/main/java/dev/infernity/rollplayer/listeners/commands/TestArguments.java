@@ -1,4 +1,4 @@
-package dev.infernity.rollplayer.listeners;
+package dev.infernity.rollplayer.listeners.commands;
 
 import dev.infernity.rollplayer.listeners.templates.SimpleCommandListener;
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay;

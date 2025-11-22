@@ -1,7 +1,8 @@
 package dev.infernity.rollplayer;
 
-import dev.infernity.rollplayer.listeners.*;
+import dev.infernity.rollplayer.listeners.commands.*;
 import dev.infernity.rollplayer.listeners.interfaces.CommandDataCapable;
+import dev.infernity.rollplayer.listeners.managers.PaginationManager;
 import net.dv8tion.jda.api.hooks.EventListener;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 
