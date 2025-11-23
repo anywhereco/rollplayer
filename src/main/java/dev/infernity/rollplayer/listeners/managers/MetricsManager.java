@@ -52,7 +52,7 @@ public class MetricsManager implements EventListener {
                             .build()
             );
         }
-        if (Resources.getInstance().isDebug()) {
+        if (Resources.getInstance().isDebug() && posthog != null) {
             posthog.flush();
         }
     }
