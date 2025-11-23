@@ -35,6 +35,7 @@ public class Resources {
     private JDA jda;
     private TextChannel debugChannel;
     private PaginationManager paginationManager;
+    private final boolean inDebugMode;
 
     private Resources() {
         this.logger = LoggerFactory.getLogger("Rollplayer");
@@ -68,6 +69,8 @@ public class Resources {
         timestamp = _timestamp;
 
         this.settingsManager = new SettingsManager();
+
+        this.inDebugMode = config.getBoolean("debug.isDebug", false);
     }
 
     public static Resources getInstance() {
@@ -110,6 +113,10 @@ public class Resources {
             return "(unknown timestamp)";
         }
         return (String) timestamp;
+    }
+
+    public boolean isDebug() {
+        return inDebugMode;
     }
 
     public void saveSettings() {

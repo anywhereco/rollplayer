@@ -2,6 +2,7 @@ package dev.infernity.rollplayer;
 
 import dev.infernity.rollplayer.listeners.commands.*;
 import dev.infernity.rollplayer.listeners.interfaces.CommandDataCapable;
+import dev.infernity.rollplayer.listeners.managers.MetricsManager;
 import dev.infernity.rollplayer.listeners.managers.PaginationManager;
 import net.dv8tion.jda.api.hooks.EventListener;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
@@ -15,7 +16,8 @@ public class Listeners {
 
     public Listeners(){
         var pm = new PaginationManager();
-        this.listeners.addAll(List.of(new EightBall(), new Choose(), new TicTacToe(), new Info(), new Roll(), new RollHelp(), new Settings(), new RandomCommand(), pm));
+        this.listeners.addAll(List.of(new EightBall(), new Choose(), new TicTacToe(), new Info(), new Roll(), new RollHelp(), new Settings(), new RandomCommand()));
+        this.listeners.addAll(List.of(pm, new MetricsManager()));
         // this.listeners.addAll(List.of(new Test(), new TestArguments()));
         for (EventListener listener : listeners) {
             if (listener instanceof CommandDataCapable capable) {
