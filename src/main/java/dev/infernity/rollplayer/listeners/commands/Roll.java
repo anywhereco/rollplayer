@@ -74,7 +74,6 @@ public class Roll extends SimpleCommandListener {
             ArrayList<String> expressions;
             List<ContainerChildComponent> output = new ArrayList<>();
 
-            IO.println(Parser.stringTokenizer(input));
             expressions = Parser.removeWhitespace(input);
             if (expressions.getFirst().equals("ERR") || expressions.size() > 10) {
                 String errorString;
@@ -143,7 +142,6 @@ public class Roll extends SimpleCommandListener {
             double valueMax = Parser.evaluateMinMax(expressions, "max");
             double valueMin = Parser.evaluateMinMax(expressions, "min");
 
-            IO.println(valueMax + " min " + valueMin);
             if (Double.isNaN(valueMin) || Double.isNaN(valueMax)) {
                 event.replyComponents(ErrorTemplate.of("Minmax calculation step failed", "If you're seeing this, please contact [the support server](https://discord.gg/TT3vyT3tAD)")).useComponentsV2().queue();
                 return;
