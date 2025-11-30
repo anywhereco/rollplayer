@@ -42,6 +42,7 @@ public class MetricsManager implements EventListener {
     public void onEvent(@NotNull GenericEvent genericEvent) {
         if (genericEvent instanceof SlashCommandInteractionEvent event) {
             var user = event.getUser();
+            if (posthog == null) return;
             posthog.capture(user.getId(),
                     String.format("command:%s", event.getFullCommandName()),
                     PostHogCaptureOptions.builder()

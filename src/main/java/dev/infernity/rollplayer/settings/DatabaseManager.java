@@ -2,7 +2,6 @@ package dev.infernity.rollplayer.settings;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.internal.utils.JDALogger;
 
 import java.io.File;
@@ -15,12 +14,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.ConcurrentHashMap;
-
+import java.util.concurrent.ForkJoinPool;
 
 public class DatabaseManager {
-    public final int CURRENT_DATABASE_VERSION = 0;
     private Connection connection;
 
+    @SuppressWarnings("unused")
     private static class UserSettingsOld {
         private long userId;
         private int version;
@@ -39,12 +38,14 @@ public class DatabaseManager {
         try {
             connection = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
 
-            int databaseSchemaVersion;
+            @SuppressWarnings("unused") int databaseSchemaVersion;
             try(Statement statement = connection.createStatement()) {
                 try(ResultSet rs = statement.executeQuery("PRAGMA user_version;")) {
                     if (!(rs.isClosed())) {
+                        //noinspection UnusedAssignment
                         databaseSchemaVersion = rs.getInt(1);
                     } else {
+                        //noinspection UnusedAssignment
                         databaseSchemaVersion = 0;
                     }
                 }
@@ -72,21 +73,39 @@ public class DatabaseManager {
     private void migrateSettingsFromOldJson(File oldSettingsFile) {
         JDALogger.getLog("DatabaseManager").info("Migrating settings from user_settings.json to the database...");
         Gson gson = new Gson();
+
         try (FileReader reader = new FileReader(oldSettingsFile)) {
             Type type = new TypeToken<ConcurrentHashMap<Long, UserSettingsOld>>(){}.getType();
             ConcurrentHashMap<Long, UserSettingsOld> oldSettings = gson.fromJson(reader, type);
-            if (oldSettings != null) {
-                for (UserSettingsOld oldSetting : oldSettings.values()) {
-                    UserSettings newSetting = new UserSettings(oldSetting.userId);
-                    newSetting.setVersion(oldSetting.version);
-                    newSetting.setDefaultRoll(oldSetting.defaultRoll);
-                    saveSettings(newSetting);
-                    JDALogger.getLog("DatabaseManager").info("Migrated {}.", oldSetting.userId);
+
+            if (oldSettings != null && !oldSettings.isEmpty()) {
+                connection.setAutoCommit(false);
+
+                String sql = "INSERT INTO user_settings VALUES (?, ?, ?)";
+
+                try (var preparedStatement = connection.prepareStatement(sql)) {
+                    for (UserSettingsOld oldSetting : oldSettings.values()) {
+                        preparedStatement.setLong(1, oldSetting.userId);
+                        preparedStatement.setInt(2, oldSetting.version);
+                        preparedStatement.setString(3, oldSetting.defaultRoll);
+
+                        preparedStatement.addBatch();
+                    }
+
+                    preparedStatement.executeBatch();
+
+                    connection.commit();
+
+                    JDALogger.getLog("DatabaseManager").info("Migrated {} users' settings in a batch.", oldSettings.size());
+                } catch (SQLException e) {
+                    connection.rollback();
+                    throw e;
+                } finally {
+                    connection.setAutoCommit(true);
                 }
-                JDALogger.getLog("DatabaseManager").info("Migrated {} users' settings.", oldSettings.size());
             }
-        } catch (IOException e) {
-            JDALogger.getLog("DatabaseManager").error("An error occurred while migrating settings from JSON: ", e);
+        } catch (IOException | SQLException e) {
+            JDALogger.getLog("DatabaseManager").error("An error occurred while migrating settings: ", e);
             return;
         }
 
@@ -99,27 +118,34 @@ public class DatabaseManager {
     }
 
     public void saveSettings(UserSettings settings) {
-        try (var preparedStatement = connection.prepareStatement("INSERT OR REPLACE INTO user_settings VALUES (?, ?, ?)")){
-            preparedStatement.setLong(1, settings.getUserId());
-            preparedStatement.setInt(2, settings.getVersion());
-            preparedStatement.setString(3, settings.getDefaultRoll());
-            preparedStatement.execute();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
+        try (ForkJoinPool pool = ForkJoinPool.commonPool()) {
+            pool.execute(() -> {
+                try (var preparedStatement = connection.prepareStatement("INSERT OR REPLACE INTO user_settings VALUES (?, ?, ?)")) {
+                    preparedStatement.setLong(1, settings.getUserId());
+                    preparedStatement.setInt(2, settings.getVersion());
+                    preparedStatement.setString(3, settings.getDefaultRoll());
+                    preparedStatement.execute();
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            });
         }
     }
 
     public UserSettings getSettings(long userId) {
         try (var preparedStatement = connection.prepareStatement("SELECT * FROM user_settings WHERE user_id = ?")) {
             preparedStatement.setLong(1, userId);
-            var resultSet = preparedStatement.executeQuery();
-            if (resultSet.isClosed()) {
+            ResultSet rs = preparedStatement.executeQuery();
+            var _ = 1;
+            if (rs.next()) {
                 var settings = new UserSettings(userId);
-                saveSettings(settings);
+                settings.setDefaultRoll(rs.getString("default_roll"));
+                settings.setVersion(rs.getInt("version"));
                 return settings;
             } else {
-                // TODO
-                return new UserSettings(userId);
+                var settings = new UserSettings(userId);
+                settings.save();
+                return settings;
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);

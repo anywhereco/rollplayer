@@ -37,16 +37,20 @@ public class Settings extends SimpleCommandListener {
     @Override
     public void onCommandRan(@NotNull SlashCommandInteractionEvent event) {
         if (Objects.equals(event.getSubcommandName(), "default-roll")) {
+            boolean hasEdited = false;
             UserSettings settings = Resources.getInstance().getDatabaseManager().getSettings(event.getUser().getIdLong());
             String expression = event.getOption("expression", null, OptionMapping::getAsString);
 
             if (expression == null) {
                 event.reply("Your current default roll is: `" + settings.getDefaultRoll() + "`").setEphemeral(true).queue();
             } else {
+                hasEdited = true;
                 settings.setDefaultRoll(expression);
                 event.reply("Your default roll has been set to: `" + expression + "`").setEphemeral(true).queue();
             }
-            settings.save();
+            if (hasEdited) {
+                settings.save();
+            }
         }
     }
 }
