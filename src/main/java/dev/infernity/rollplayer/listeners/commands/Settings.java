@@ -1,6 +1,7 @@
 package dev.infernity.rollplayer.listeners.commands;
 
 import dev.infernity.rollplayer.Resources;
+import dev.infernity.rollplayer.components.templates.ErrorTemplate;
 import dev.infernity.rollplayer.listeners.templates.SimpleCommandListener;
 import dev.infernity.rollplayer.settings.UserSettings;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -43,8 +44,9 @@ public class Settings extends SimpleCommandListener {
             if (expression == null) {
                 event.reply("Your current default roll is: `" + settings.getDefaultRoll() + "`").setEphemeral(true).queue();
             } else {
-                settings.setDefaultRoll(expression);
-                event.reply("Your default roll has been set to: `" + expression + "`").setEphemeral(true).queue();
+                event.replyComponents(ErrorTemplate.of("Setting your settings is temporarily disabled while migration occurs.")).setEphemeral(true).queue();
+                //settings.setDefaultRoll(expression);
+                //event.reply("Your default roll has been set to: `" + expression + "`").setEphemeral(true).queue();
             }
         }
     }
