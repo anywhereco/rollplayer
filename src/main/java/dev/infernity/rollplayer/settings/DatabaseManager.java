@@ -2,6 +2,7 @@ package dev.infernity.rollplayer.settings;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import dev.infernity.rollplayer.Resources;
 import net.dv8tion.jda.internal.utils.JDALogger;
 
 import java.io.File;
@@ -68,6 +69,20 @@ public class DatabaseManager {
             migrateSettingsFromOldJson(oldSettingsFile);
         }
 
+        Runtime.getRuntime().addShutdownHook(new Thread(this::cleanup));
+
+    }
+
+    private void cleanup() {
+        Resources.getInstance().getLogger().info("Database is cleaning up.");
+        try {
+            if (!connection.getAutoCommit()) {
+                connection.commit();
+            }
+            connection.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void migrateSettingsFromOldJson(File oldSettingsFile) {
