@@ -44,7 +44,7 @@ public class Settings extends SimpleCommandListener {
             if (expression == null) {
                 event.reply("Your current default roll is: `" + settings.getDefaultRoll() + "`").setEphemeral(true).queue();
             } else {
-                event.replyComponents(ErrorTemplate.of("Setting your settings is temporarily disabled while migration occurs.")).setEphemeral(true).queue();
+                event.replyComponents(ErrorTemplate.of("Setting your settings is temporarily disabled while migration occurs.")).useComponentsV2().setEphemeral(true).queue();
                 //settings.setDefaultRoll(expression);
                 //event.reply("Your default roll has been set to: `" + expression + "`").setEphemeral(true).queue();
             }
