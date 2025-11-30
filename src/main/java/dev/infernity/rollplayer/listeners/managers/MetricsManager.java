@@ -34,7 +34,7 @@ public class MetricsManager implements EventListener {
     }
 
     public void cleanup(){
-        Resources.getInstance().getLogger().info("Metrics disabled (if you want them enabled, set the posthog.token property)");
+        Resources.getInstance().getLogger().info("Cleaning up metrics.");
         posthog.close();
     }
 
