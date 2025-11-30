@@ -63,7 +63,7 @@ public class Roll extends SimpleCommandListener {
     @Override
     public void onCommandRan(@NotNull SlashCommandInteractionEvent event) {
         String input = event.getOption("roll",
-                () -> Resources.getInstance().getSettingsManager().getSettings(event.getUser().getIdLong()).getDefaultRoll(),
+                () -> Resources.getInstance().getDatabaseManager().getSettings(event.getUser().getIdLong()).getDefaultRoll(),
                 OptionMapping::getAsString);
         try {
 

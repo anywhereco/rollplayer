@@ -2,7 +2,7 @@ package dev.infernity.rollplayer;
 
 import dev.infernity.rollplayer.files.JarPather;
 import dev.infernity.rollplayer.listeners.managers.PaginationManager;
-import dev.infernity.rollplayer.settings.SettingsManager;
+import dev.infernity.rollplayer.settings.DatabaseManager;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.components.container.Container;
 import net.dv8tion.jda.api.components.container.ContainerChildComponent;
@@ -31,7 +31,7 @@ public class Resources {
     private final String version;
     private final String name;
     private final String timestamp;
-    private final SettingsManager settingsManager;
+    private final DatabaseManager databaseManager;
     private JDA jda;
     private TextChannel debugChannel;
     private PaginationManager paginationManager;
@@ -68,7 +68,7 @@ public class Resources {
         name = _name;
         timestamp = _timestamp;
 
-        this.settingsManager = new SettingsManager();
+        this.databaseManager = new DatabaseManager();
 
         this.inDebugMode = config.getBoolean("debug.isDebug", false);
     }
@@ -119,10 +119,6 @@ public class Resources {
         return inDebugMode;
     }
 
-    public void saveSettings() {
-        settingsManager.saveSettings();
-    }
-
     public Logger getLogger() {
         return logger;
     }
@@ -143,8 +139,8 @@ public class Resources {
         return timestamp;
     }
 
-    public SettingsManager getSettingsManager() {
-        return settingsManager;
+    public DatabaseManager getDatabaseManager() {
+        return databaseManager;
     }
 
     @SuppressWarnings("unused")

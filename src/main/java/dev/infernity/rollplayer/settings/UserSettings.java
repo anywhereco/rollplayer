@@ -1,5 +1,7 @@
 package dev.infernity.rollplayer.settings;
 
+import dev.infernity.rollplayer.Resources;
+
 public class UserSettings {
     private static final int CURRENT_VERSION = 1;
 
@@ -24,6 +26,18 @@ public class UserSettings {
 
     public void setDefaultRoll(String defaultRoll) {
         this.defaultRoll = defaultRoll;
+    }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public void setVersion(int version) {
+        this.version = version;
+    }
+
+    public void save() {
+        Resources.getInstance().getDatabaseManager().saveSettings(this);
     }
 
     @SuppressWarnings("ConstantValue") // Can depend on the data so it's not actually constant as IntelliJ thinks it is
