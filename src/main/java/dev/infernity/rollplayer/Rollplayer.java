@@ -103,7 +103,6 @@ public class Rollplayer extends ListenerAdapter {
                 .collect(Collectors.toSet());
 
         int upserts = 0;
-        // 1. Upsert new and changed commands
         for (CommandData localCommand : localCommands) {
             var remoteCommand = remoteCommandMap.get(localCommand.getName());
             boolean changed = false;
@@ -124,7 +123,6 @@ public class Rollplayer extends ListenerAdapter {
         }
 
         int deletions = 0;
-        // 2. Delete old commands
         for (Command remoteCommand : remoteCommands) {
             if (!localCommandNames.contains(remoteCommand.getName())) {
                 deletions++;
@@ -143,7 +141,6 @@ public class Rollplayer extends ListenerAdapter {
                 .collect(Collectors.toSet());
 
         int upserts = 0;
-        // 1. Upsert new and changed commands
         for (CommandData localCommand : localCommands) {
             var remoteCommand = remoteCommandMap.get(localCommand.getName());
             boolean changed = false;
@@ -164,7 +161,6 @@ public class Rollplayer extends ListenerAdapter {
         }
 
         int deletions = 0;
-        // 2. Delete old commands
         for (Command remoteCommand : remoteCommands) {
             if (!localCommandNames.contains(remoteCommand.getName())) {
                 deletions++;

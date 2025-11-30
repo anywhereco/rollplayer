@@ -2,7 +2,7 @@ package dev.infernity.rollplayer.listeners.commands;
 
 import dev.infernity.rollplayer.Resources;
 import dev.infernity.rollplayer.listeners.templates.SimpleCommandListener;
-import dev.infernity.rollplayer.settings.UserSettings;
+import dev.infernity.rollplayer.settings.UserData;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.IntegrationType;
 import net.dv8tion.jda.api.interactions.InteractionContextType;
@@ -38,18 +38,18 @@ public class Settings extends SimpleCommandListener {
     public void onCommandRan(@NotNull SlashCommandInteractionEvent event) {
         if (Objects.equals(event.getSubcommandName(), "default-roll")) {
             boolean hasEdited = false;
-            UserSettings settings = Resources.getInstance().getDatabaseManager().getSettings(event.getUser().getIdLong());
+            UserData data = Resources.getInstance().getDatabaseManager().getUserData(event.getUser().getIdLong());
             String expression = event.getOption("expression", null, OptionMapping::getAsString);
 
             if (expression == null) {
-                event.reply("Your current default roll is: `" + settings.getDefaultRoll() + "`").setEphemeral(true).queue();
+                event.reply("Your current default roll is: `" + data.getDefaultRoll() + "`").setEphemeral(true).queue();
             } else {
                 hasEdited = true;
-                settings.setDefaultRoll(expression);
+                data.setDefaultRoll(expression);
                 event.reply("Your default roll has been set to: `" + expression + "`").setEphemeral(true).queue();
             }
             if (hasEdited) {
-                settings.save();
+                data.save();
             }
         }
     }

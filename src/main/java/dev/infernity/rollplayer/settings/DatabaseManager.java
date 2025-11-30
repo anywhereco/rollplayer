@@ -53,7 +53,7 @@ public class DatabaseManager {
 
             try (Statement statement = connection.createStatement()) {
                 statement.execute("""
-                        CREATE TABLE IF NOT EXISTS user_settings (
+                        CREATE TABLE IF NOT EXISTS users (
                         user_id LONG PRIMARY KEY,
                         version INTEGER NOT NULL,
                         default_roll TEXT NOT NULL
@@ -81,7 +81,7 @@ public class DatabaseManager {
             if (oldSettings != null && !oldSettings.isEmpty()) {
                 connection.setAutoCommit(false);
 
-                String sql = "INSERT INTO user_settings VALUES (?, ?, ?)";
+                String sql = "INSERT INTO users VALUES (?, ?, ?)";
 
                 try (var preparedStatement = connection.prepareStatement(sql)) {
                     for (UserSettingsOld oldSetting : oldSettings.values()) {
@@ -117,13 +117,13 @@ public class DatabaseManager {
         }
     }
 
-    public void saveSettings(UserSettings settings) {
+    public void saveUserData(UserData data) {
         try (ForkJoinPool pool = ForkJoinPool.commonPool()) {
             pool.execute(() -> {
                 try (var preparedStatement = connection.prepareStatement("INSERT OR REPLACE INTO user_settings VALUES (?, ?, ?)")) {
-                    preparedStatement.setLong(1, settings.getUserId());
-                    preparedStatement.setInt(2, settings.getVersion());
-                    preparedStatement.setString(3, settings.getDefaultRoll());
+                    preparedStatement.setLong(1, data.getUserId());
+                    preparedStatement.setInt(2, data.getVersion());
+                    preparedStatement.setString(3, data.getDefaultRoll());
                     preparedStatement.execute();
                 } catch (SQLException e) {
                     throw new RuntimeException(e);
@@ -132,20 +132,20 @@ public class DatabaseManager {
         }
     }
 
-    public UserSettings getSettings(long userId) {
-        try (var preparedStatement = connection.prepareStatement("SELECT * FROM user_settings WHERE user_id = ?")) {
+    public UserData getUserData(long userId) {
+        try (var preparedStatement = connection.prepareStatement("SELECT * FROM users WHERE user_id = ?")) {
             preparedStatement.setLong(1, userId);
             ResultSet rs = preparedStatement.executeQuery();
             var _ = 1;
             if (rs.next()) {
-                var settings = new UserSettings(userId);
-                settings.setDefaultRoll(rs.getString("default_roll"));
-                settings.setVersion(rs.getInt("version"));
-                return settings;
+                var data = new UserData(userId);
+                data.setDefaultRoll(rs.getString("default_roll"));
+                data.setVersion(rs.getInt("version"));
+                return data;
             } else {
-                var settings = new UserSettings(userId);
-                settings.save();
-                return settings;
+                var data = new UserData(userId);
+                data.save();
+                return data;
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);

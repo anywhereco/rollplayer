@@ -2,14 +2,14 @@ package dev.infernity.rollplayer.settings;
 
 import dev.infernity.rollplayer.Resources;
 
-public class UserSettings {
+public class UserData {
     private static final int CURRENT_VERSION = 1;
 
     private final long userId;
     private int version;
     private String defaultRoll;
 
-    public UserSettings(long userId) {
+    public UserData(long userId) {
         this.userId = userId;
         this.version = CURRENT_VERSION;
         this.defaultRoll = "1d20";
@@ -37,20 +37,6 @@ public class UserSettings {
     }
 
     public void save() {
-        Resources.getInstance().getDatabaseManager().saveSettings(this);
-    }
-
-    @SuppressWarnings("ConstantValue") // Can depend on the data so it's not actually constant as IntelliJ thinks it is
-    public void performMigration() {
-        if (this.version < CURRENT_VERSION) {
-            if (this.version < 1) {
-                // Migrations for settings created before version 1
-                if (this.defaultRoll == null) {
-                    this.defaultRoll = "1d20";
-                }
-            }
-
-            this.version = CURRENT_VERSION;
-        }
+        Resources.getInstance().getDatabaseManager().saveUserData(this);
     }
 }
