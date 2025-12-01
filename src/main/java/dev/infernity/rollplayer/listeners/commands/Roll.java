@@ -101,7 +101,10 @@ public class Roll extends SimpleCommandListener {
                 String[] values;
                 if (evaluations.get(exp).startsWith("r")) { // roll list clause
                     // rewrite this if if you want to reformat how no-roll returns will look
-                    if (evaluations.get(exp).substring(1).isEmpty()) values = new String[0];
+                    if (evaluations.get(exp).substring(1).isEmpty()) {
+                        output.add(TextDisplay.of("[*No rolls*]"));
+                        continue;
+                    }
                     else values = evaluations.get(exp).substring(2).split(" ");
                 } else { // single output clause
                     values = new String[]{evaluations.get(exp)};
