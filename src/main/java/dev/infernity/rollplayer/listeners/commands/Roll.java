@@ -100,7 +100,9 @@ public class Roll extends SimpleCommandListener {
 
                 String[] values;
                 if (evaluations.get(exp).startsWith("r")) { // roll list clause
-                    values = evaluations.get(exp).substring(2).split(" ");
+                    // rewrite this if if you want to reformat how no-roll returns will look
+                    if (evaluations.get(exp).substring(1).isEmpty()) values = new String[0];
+                    else values = evaluations.get(exp).substring(2).split(" ");
                 } else { // single output clause
                     values = new String[]{evaluations.get(exp)};
                 }
@@ -147,32 +149,41 @@ public class Roll extends SimpleCommandListener {
                 return;
             }
 
-            for (String s : evaluations) {
-                if (s.startsWith("r")) {
-                    String[] doubles = s.substring(2).split(" ");
-                    for (String d : doubles)
-                        valueSum += Double.parseDouble(d);
-                } else valueSum += Double.parseDouble(s);
-            }
-
-            if (valueSum >= valueMax) {
-                if (valueSum >= 2 * valueMax) {
-                    hue = overMaxLerpHue;
-                    brightness = .85f;
-                } else {
-                    // overmax lerp
-                    // think of this as (valueSum - valueMax) / (2*valueMax - valueMax)
-                    float lerp = (float) ((valueSum - valueMax) / valueMax);
-                    hue = lerp * (overMaxLerpHue - atMaxLerpHue) + atMaxLerpHue;
-                    brightness = (lerp * .1f) + .75f;
-                }
-            } else if (valueSum <= valueMin) {
+            if (valueMax == 0 && valueMin == 0) { // color return selection for when the bounds are 0
                 brightness = 0;
                 hue = 0;
-            } else {
-                //what's lerpma?
-                float lerp = (float) ((valueSum - valueMin) / (valueMax - valueMin));
-                hue = lerp * (upToMaxLerpHue - minLerpHue) + minLerpHue;
+            }
+            else {
+                for (String s : evaluations) {
+                    if (s.startsWith("r")) {
+                        if (s.substring(1).isEmpty()) valueSum = 0; // avoid index error
+                        else {
+                            String[] doubles = s.substring(2).split(" ");
+                            for (String d : doubles)
+                                valueSum += Double.parseDouble(d);
+                        }
+                    } else valueSum += Double.parseDouble(s);
+                }
+
+                if (valueSum >= valueMax) {
+                    if (valueSum >= 2 * valueMax) {
+                        hue = overMaxLerpHue;
+                        brightness = .85f;
+                    } else {
+                        // overmax lerp
+                        // think of this as (valueSum - valueMax) / (2*valueMax - valueMax)
+                        float lerp = (float) ((valueSum - valueMax) / valueMax);
+                        hue = lerp * (overMaxLerpHue - atMaxLerpHue) + atMaxLerpHue;
+                        brightness = (lerp * .1f) + .75f;
+                    }
+                } else if (valueSum <= valueMin) {
+                    brightness = 0;
+                    hue = 0;
+                } else {
+                    //what's lerpma?
+                    float lerp = (float) ((valueSum - valueMin) / (valueMax - valueMin));
+                    hue = lerp * (upToMaxLerpHue - minLerpHue) + minLerpHue;
+                }
             }
 
             outputContainer = outputContainer.withAccentColor(Color.getHSBColor(hue, saturation, brightness));
