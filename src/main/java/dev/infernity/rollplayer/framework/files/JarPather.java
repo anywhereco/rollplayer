@@ -1,4 +1,4 @@
-package dev.infernity.rollplayer.files;
+package dev.infernity.rollplayer.framework.files;
 
 import java.net.URI;
 import java.net.URISyntaxException;
