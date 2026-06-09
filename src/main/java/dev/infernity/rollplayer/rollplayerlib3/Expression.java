@@ -233,6 +233,42 @@ class DiceRoller extends Expression{
                     if (rolls.isError()) return rolls; // kick it again
                     break;
 
+                case "bohi":
+                    int boldHigher = 1;
+                    if(isNumber(peek()))
+                        boldHigher = (int)Double.parseDouble(consume());
+
+                    rolls.boldHigher(boldHigher);
+                    if (rolls.isError()) return rolls; // kick it up the chain
+                    break;
+
+                case "ithi":
+                    int italHigher = 1;
+                    if(isNumber(peek()))
+                        italHigher = (int)Double.parseDouble(consume());
+
+                    rolls.italicHigher(italHigher);
+                    if (rolls.isError()) return rolls; // kick it up the chain
+                    break;
+
+                case "bolo":
+                    int boldLower = 1;
+                    if(isNumber(peek()))
+                        boldLower = (int)Double.parseDouble(consume());
+
+                    rolls.boldLower(boldLower);
+                    if (rolls.isError()) return rolls; // kick it up the chain
+                    break;
+
+                case "itlo":
+                    int italLower = 1;
+                    if(isNumber(peek()))
+                        italLower = (int)Double.parseDouble(consume());
+
+                    rolls.italicLower(italLower);
+                    if (rolls.isError()) return rolls; // kick it up the chain
+                    break;
+
                 case "rr":
                     String rerollCond;
                     int rerollMax = 1;
@@ -255,6 +291,22 @@ class DiceRoller extends Expression{
                         if (dropConds.startsWith("ERR ")) return new Rolls(dropConds.substring(4));
                         rolls.drop(dropConds);
                     } else return new Rolls("Missing condition following drop operator\nDrops need a {} condition section!");
+                    break;
+
+                case "bold":
+                    if(peek("\\{")) {
+                        String boldConds = getConditions();
+                        if (boldConds.startsWith("ERR ")) return new Rolls(boldConds.substring(4));
+                        rolls.bold(boldConds);
+                    } else return new Rolls("Missing condition following bold operator\nBolds need a {} condition section!");
+                    break;
+
+                case "ital":
+                    if(peek("\\{")) {
+                        String italConds = getConditions();
+                        if (italConds.startsWith("ERR ")) return new Rolls(italConds.substring(4));
+                        rolls.italic(italConds);
+                    } else return new Rolls("Missing condition following ital operator\nItals need a {} condition section!");
                     break;
 
                 case "!":
@@ -312,6 +364,8 @@ class DiceRoller extends Expression{
 
 class Rolls{
     double[] rolls;
+    boolean[] bolds;
+    boolean[] italics;
     final int minRoll;
     final int maxRoll;
     final static Random rng = new Random();
@@ -319,6 +373,8 @@ class Rolls{
 
     Rolls(String error) {
         this.rolls = new double[]{0};
+        this.bolds = new boolean[]{false};
+        this.italics = new boolean[]{false};
         this.minRoll = 0;
         this.maxRoll = 0;
         this.errorCode = error;
@@ -326,6 +382,8 @@ class Rolls{
 
     Rolls(double[] rolls, int min, int max) {
         this.rolls = rolls;
+        this.bolds = new boolean[rolls.length];
+        this.italics = new boolean[rolls.length];
         this.minRoll = min;
         this.maxRoll = max;
         this.errorCode = "";
@@ -345,6 +403,8 @@ class Rolls{
         for (int i = 0; i < rollCount; i++) {
             rolls[i] = rollNumber();
         }
+        this.bolds = new boolean[rollCount];
+        this.italics = new boolean[rollCount];
     }
 
     @SuppressWarnings("unused")
@@ -369,8 +429,15 @@ class Rolls{
         return rng.nextInt(maxRoll - minRoll + 1) + minRoll;
     }
 
-    public double[] getRolls(){
-        return rolls;
+    public ArrayList<String> getRolls(){
+        ArrayList<String> formattedRolls = new ArrayList<>();
+        for(int i = 0; i < rolls.length; i++) {
+            String formattedRoll = "" + rolls[i];
+            if(bolds[i]) formattedRoll = "**" + formattedRoll + "**";
+            if(italics[i]) formattedRoll = "*" + formattedRoll + "*";
+            formattedRolls.add(formattedRoll);
+        }
+        return formattedRolls;
     }
 
     public double getSum() {
@@ -453,6 +520,74 @@ class Rolls{
 
         output.removeAll(Collections.singleton(null));
         rolls = output.stream().mapToDouble(d -> d).toArray();
+    }
+
+    public void bold(String conditions){
+        for (int i = 0; i < rolls.length; i++) {
+            String result = Expression.satisfiesConditions(rolls[i], conditions);
+            if (result.startsWith("ERR ")) {
+                errorCode = result.substring(4);
+                return;
+            }
+            if (result.equals("true"))
+                bolds[i] = true;
+        }
+    }
+
+    public void italic(String conditions){
+        for (int i = 0; i < rolls.length; i++) {
+            String result = Expression.satisfiesConditions(rolls[i], conditions);
+            if (result.startsWith("ERR ")) {
+                errorCode = result.substring(4);
+                return;
+            }
+            if (result.equals("true"))
+                italics[i] = true;
+        }
+    }
+
+    public void boldHigher(int high) {
+        ArrayList<Double> sortedRolls = new ArrayList<>();
+        for (double d : rolls) sortedRolls.add(d);
+        sortedRolls.sort(null);
+        double highestRoll = sortedRolls.get(rolls.length - high);
+
+        for(int i = 0; i < rolls.length; i++)
+            if(rolls[i] >= highestRoll)
+                bolds[i] = true;
+    }
+
+    public void italicHigher(int high) {
+        ArrayList<Double> sortedRolls = new ArrayList<>();
+        for (double d : rolls) sortedRolls.add(d);
+        sortedRolls.sort(null);
+        double highestRoll = sortedRolls.get(rolls.length - high);
+
+        for(int i = 0; i < rolls.length; i++)
+            if(rolls[i] >= highestRoll)
+                italics[i] = true;
+    }
+
+    public void boldLower(int low) {
+        ArrayList<Double> sortedRolls = new ArrayList<>();
+        for (double d : rolls) sortedRolls.add(d);
+        sortedRolls.sort(null);
+        double highestRoll = sortedRolls.get(low);
+
+        for(int i = 0; i < rolls.length; i++)
+            if(rolls[i] >= highestRoll)
+                bolds[i] = true;
+    }
+
+    public void italicLower(int low) {
+        ArrayList<Double> sortedRolls = new ArrayList<>();
+        for (double d : rolls) sortedRolls.add(d);
+        sortedRolls.sort(null);
+        double highestRoll = sortedRolls.get(low);
+
+        for(int i = 0; i < rolls.length; i++)
+            if(rolls[i] >= highestRoll)
+                italics[i] = true;
     }
 
     /**

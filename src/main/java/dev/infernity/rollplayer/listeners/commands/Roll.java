@@ -111,9 +111,15 @@ public class Roll extends SimpleCommandListener {
                 }
 
                 // remove trailing zeroes
-                for (int s = 0; s < values.length; s++)
-                    if (values[s].endsWith(".0"))
-                        values[s] = values[s].substring(0, values[s].length() - 2);
+                for (int s = 0; s < values.length; s++) {
+                    String unformattedNumber = values[s].replaceAll("\\**_*~*", "");
+                    int asteriskCount = values[s].length() - unformattedNumber.length();
+                    if (unformattedNumber.endsWith(".0"))
+                        unformattedNumber = unformattedNumber.substring(0, unformattedNumber.length() - 2);
+                    unformattedNumber = values[s].substring(0, asteriskCount/2) + unformattedNumber +
+                            values[s].substring(values[s].length() - asteriskCount/2);
+                    values[s] = unformattedNumber;
+                }
 
                 StringBuilder line = new StringBuilder("[");
                 for (int s = 0; s < values.length; s++) {
@@ -124,7 +130,7 @@ public class Roll extends SimpleCommandListener {
                 if (values.length > 1) { //   append the total
                     double total = 0;
                     for (String s : values)
-                        total += Double.parseDouble(s);
+                        total += Parser.parseDouble(s);
 
                     if (total == (int) total) //  remove trailing zero
                         line.append(" (total: ").append((int) total).append(")");
@@ -163,9 +169,9 @@ public class Roll extends SimpleCommandListener {
                         else {
                             String[] doubles = s.substring(2).split(" ");
                             for (String d : doubles)
-                                valueSum += Double.parseDouble(d);
+                                valueSum += Parser.parseDouble(d);
                         }
-                    } else valueSum += Double.parseDouble(s);
+                    } else valueSum += Parser.parseDouble(s);
                 }
 
                 if (valueSum >= valueMax) {

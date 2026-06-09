@@ -78,7 +78,7 @@ public class Parser {
         if(tokens.getFirst().equals("Dice Roll Expression")) {
             double sum = 0;
             for(String value : tokens.subList(1, tokens.size()))
-                sum += Double.parseDouble(value);
+                sum += Parser.parseDouble(value);
             return sum;
         } else {
             MathSolver evaluator = new MathSolver(tokens);
@@ -270,6 +270,16 @@ public class Parser {
                 continue;
             }
 
+            // quad-char tokens
+            if(stringIterator+3 < input.length()) {
+                switch (input.substring(stringIterator, stringIterator + 4)) {
+                    case "bold", "ital", "bohi", "ithi", "bolo", "itlo":
+                        outputList.add(input.substring(stringIterator, stringIterator + 4));
+                        stringIterator += 4;
+                        continue;
+                }
+            }
+
             // block for two-char tokens that goes before the single-char tokens
             if(stringIterator+1 < input.length()) {
                 switch (input.substring(stringIterator, stringIterator + 2)) {
@@ -414,6 +424,15 @@ public class Parser {
                         }
                         expressionEnd++;
                         break;
+                    case "bohi", "ithi", "bolo", "itlo":
+                        toEvaluate.add(input.get(expressionEnd));
+                        if (input.size() > expressionEnd + 1 && input.get(expressionEnd + 1).matches("\\d+\\.?\\d+")) {
+                            toEvaluate.add(input.get(expressionEnd + 1));
+                            expressionEnd += 2;
+                            break;
+                        }
+                        expressionEnd++;
+                        break;
                     case "rr":
                         while (!input.get(expressionEnd).equals("}")) {
                             toEvaluate.add(input.get(expressionEnd));
@@ -440,6 +459,36 @@ public class Parser {
                                 output.clear();
                                 output.add("ERR");
                                 output.add("Reached end of expression while parsing open drop condition" +
+                                        "\nThis means you forgot a } somewhere");
+                                return output;
+                            }
+                            expressionEnd++;
+                        }
+                        toEvaluate.add(input.get(expressionEnd));
+                        expressionEnd++;
+                        break;
+                    case "bold":
+                        while (!input.get(expressionEnd).equals("}")) {
+                            toEvaluate.add(input.get(expressionEnd));
+                            if (input.get(expressionEnd).equals("EOF")) {
+                                output.clear();
+                                output.add("ERR");
+                                output.add("Reached end of expression while parsing open bold condition" +
+                                        "\nThis means you forgot a } somewhere");
+                                return output;
+                            }
+                            expressionEnd++;
+                        }
+                        toEvaluate.add(input.get(expressionEnd));
+                        expressionEnd++;
+                        break;
+                    case "ital":
+                        while (!input.get(expressionEnd).equals("}")) {
+                            toEvaluate.add(input.get(expressionEnd));
+                            if (input.get(expressionEnd).equals("EOF")) {
+                                output.clear();
+                                output.add("ERR");
+                                output.add("Reached end of expression while parsing open ital condition" +
                                         "\nThis means you forgot a } somewhere");
                                 return output;
                             }
@@ -501,8 +550,7 @@ public class Parser {
             if (firstPass && expressionEnd >= input.size()-1) {
                 output.clear();
                 output.add("Dice Roll Expression");
-                for(double roll : evaluation.getRolls())
-                    output.add("" + roll);
+                output.addAll(evaluation.getRolls());
                 return output;
             } else {
                 output.add("" +evaluation.getSum());
@@ -522,5 +570,11 @@ public class Parser {
         output.addAll(input.subList(expressionEnd, input.size()));
 
         return output;
+    }
+
+    // janky method made to handle bolded and italicized double parses
+    public static double parseDouble(String input) {
+        input = input.replaceAll("\\**_*~*", "");
+        return Double.parseDouble(input);
     }
 }
