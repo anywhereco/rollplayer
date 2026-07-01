@@ -1,5 +1,7 @@
 package dev.infernity.rollplayer.rollplayerlib3;
 
+import org.apache.commons.lang3.ArrayUtils;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
@@ -447,6 +449,11 @@ class Rolls{
         return output;
     }
 
+    /* this (and also keeplower) breaks italics and bolds behavior so i just empty them
+     * if i had the foresight to make the roll lists more robustly track bolds and italics alongside
+     * their corresponding roll then this would not really be a problem
+     * also i don't want to make a more robust system just to accomodate bold/italic then keep
+     */
     public void keepHigher(int high) {
         if(high > rolls.length || high < 1) {
             return; // keeping more rolls than are in the list
@@ -467,6 +474,8 @@ class Rolls{
 
         output.removeAll(Collections.singleton(null));
         rolls = output.stream().mapToDouble(d -> d).toArray();
+        bolds = new boolean[rolls.length];
+        italics = new boolean[rolls.length];
     }
 
     public void keepLower(int low) {
@@ -489,6 +498,8 @@ class Rolls{
 
         output.removeAll(Collections.singleton(null));
         rolls = output.stream().mapToDouble(d -> d).toArray();
+        bolds = new boolean[rolls.length];
+        italics = new boolean[rolls.length];
     }
 
     public void keepHighLow(int high, int low) {
@@ -626,16 +637,23 @@ class Rolls{
      */
     public void drop(String conditions) {
         ArrayList<Double> output = new ArrayList<>();
-        for (double i : rolls) {
+        ArrayList<Boolean> newBolds = new ArrayList<>();
+        ArrayList<Boolean> newItals = new ArrayList<>();
+        for (int i = 0; i < rolls.length; i++) {
             String result = Expression.satisfiesConditions(i, conditions);
             if (result.startsWith("ERR ")) {
                 errorCode = result.substring(4);
                 return;
             }
-            if (!result.equals("true"))
-                output.add(i);
+            if (!result.equals("true")) {
+                output.add(rolls[i]);
+                newBolds.add(bolds[i]);
+                newItals.add(italics[i]);
+            }
         }
         rolls = output.stream().mapToDouble(d -> d).toArray();
+        bolds = ArrayUtils.toPrimitive(newBolds.toArray(ArrayUtils.EMPTY_BOOLEAN_OBJECT_ARRAY));
+        italics = ArrayUtils.toPrimitive(newItals.toArray(ArrayUtils.EMPTY_BOOLEAN_OBJECT_ARRAY));
     }
 
     /**
@@ -668,8 +686,12 @@ class Rolls{
             return;
         }
         ArrayList<Double> output = new ArrayList<>();
-        for(double i : rolls){
-            output.add(i);
+        ArrayList<Boolean> newBolds = new ArrayList<>();
+        ArrayList<Boolean> newItals = new ArrayList<>();
+        for(int i = 0; i < rolls.length; i++){
+            output.add(rolls[i]);
+            newBolds.add(bolds[i]);
+            newItals.add(italics[i]);
         }
 
         int explosionsRemaining = 0, explosionsCounter = 0;
@@ -686,6 +708,8 @@ class Rolls{
         while (explosionsRemaining > 0 && explosionsCounter < maxExplosions) {
             explosionsCounter++;
             output.add(rollNumber());
+            newBolds.add(false);
+            newItals.add(false);
 
             String result = Expression.satisfiesConditions(output.getLast(), conditions);
             if (result.startsWith("ERR ")) {
@@ -697,6 +721,8 @@ class Rolls{
             explosionsRemaining--;
         }
         rolls = output.stream().mapToDouble(d -> d).toArray();
+        bolds = ArrayUtils.toPrimitive(newBolds.toArray(ArrayUtils.EMPTY_BOOLEAN_OBJECT_ARRAY));
+        italics = ArrayUtils.toPrimitive(newItals.toArray(ArrayUtils.EMPTY_BOOLEAN_OBJECT_ARRAY));
     }
 
     public void explode(int maxExplosions) {
@@ -892,11 +918,15 @@ class MinRolls extends Rolls{
                 else if (Double.parseDouble(bounds[0]) > Double.parseDouble(bounds[1])) { // 5:3
                     if (Double.parseDouble(bounds[1]) < lowerBound && Double.parseDouble(bounds[0]) > lowerBound) {
                         rolls = new double[0];
+                        bolds = new boolean[0];
+                        italics = new boolean[0];
                         return;
                     }
                 } else // 3:5
                     if (Double.parseDouble(bounds[0]) < lowerBound && Double.parseDouble(bounds[1]) > lowerBound) {
                         rolls = new double[0];
+                        bolds = new boolean[0];
+                        italics = new boolean[0];
                         return;
                     }
             }
@@ -907,11 +937,15 @@ class MinRolls extends Rolls{
                     if (cond.charAt(1) == '=') {
                         if (Double.parseDouble(cond.substring(2)) >= lowerBound) {
                             rolls = new double[0];
+                            bolds = new boolean[0];
+                            italics = new boolean[0];
                             return;
                         }
                     } else
                         if (Double.parseDouble(cond.substring(1)) > lowerBound) {
                             rolls = new double[0];
+                            bolds = new boolean[0];
+                            italics = new boolean[0];
                             return;
                         }
                     continue;
@@ -920,11 +954,15 @@ class MinRolls extends Rolls{
                     if (cond.charAt(1) == '=') {
                         if (Double.parseDouble(cond.substring(2)) <= lowerBound) {
                             rolls = new double[0];
+                            bolds = new boolean[0];
+                            italics = new boolean[0];
                             return;
                         }
                     } else
                         if (Double.parseDouble(cond.substring(1)) < lowerBound) {
                             rolls = new double[0];
+                            bolds = new boolean[0];
+                            italics = new boolean[0];
                             return;
                         }
                     continue;
@@ -932,6 +970,8 @@ class MinRolls extends Rolls{
                 case '!':
                     if (rolls.length > 0 && Double.parseDouble(cond.substring(2)) != rolls[0]) {
                         rolls = new double[0];
+                        bolds = new boolean[0];
+                        italics = new boolean[0];
                         return;
                     }
                     continue;
@@ -939,6 +979,8 @@ class MinRolls extends Rolls{
                 case '=':
                     if (rolls.length > 0 && Double.parseDouble(cond.substring(1)) == rolls[0]){
                         rolls = new double[0];
+                        bolds = new boolean[0];
+                        italics = new boolean[0];
                         return;
                     }
             }
