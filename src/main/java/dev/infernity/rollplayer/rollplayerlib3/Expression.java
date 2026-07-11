@@ -583,10 +583,10 @@ class Rolls{
         ArrayList<Double> sortedRolls = new ArrayList<>();
         for (double d : rolls) sortedRolls.add(d);
         sortedRolls.sort(null);
-        double highestRoll = sortedRolls.get(low);
+        double lowestRoll = sortedRolls.get(low);
 
         for(int i = 0; i < rolls.length; i++)
-            if(rolls[i] >= highestRoll)
+            if(rolls[i] <= lowestRoll)
                 bolds[i] = true;
     }
 
@@ -594,10 +594,10 @@ class Rolls{
         ArrayList<Double> sortedRolls = new ArrayList<>();
         for (double d : rolls) sortedRolls.add(d);
         sortedRolls.sort(null);
-        double highestRoll = sortedRolls.get(low);
+        double lowestRoll = sortedRolls.get(low);
 
         for(int i = 0; i < rolls.length; i++)
-            if(rolls[i] >= highestRoll)
+            if(rolls[i] <= lowestRoll)
                 italics[i] = true;
     }
 
